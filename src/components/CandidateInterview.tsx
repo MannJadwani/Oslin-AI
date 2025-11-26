@@ -112,7 +112,7 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
       if (error instanceof Error && error.message.includes("Interview already started")) {
           toast.error("This interview has already been started or completed.");
       } else {
-          toast.error("Failed to start interview");
+      toast.error("Failed to start interview");
       }
     }
   };
@@ -184,26 +184,26 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
     
     // 3. Stop media recorder and handle upload in background
     return new Promise<void>((resolve) => {
-        mediaRecorder.onstop = async () => {
-            const blob = new Blob(chunksRef.current, { type: "video/webm" });
-            
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(chunksRef.current, { type: "video/webm" });
+        
             if (currentQuestion && interviewId) {
-                try {
-                    const uploadUrl = await generateUploadUrl();
-                    const uploadResult = await fetch(uploadUrl, {
-                        method: "POST",
-                        headers: { "Content-Type": blob.type },
-                        body: blob,
-                    });
-                    const { storageId } = await uploadResult.json();
-                    await saveResponse({
-                        interviewId,
-                        questionId: currentQuestion.id,
-                        videoStorageId: storageId,
+        try {
+          const uploadUrl = await generateUploadUrl();
+          const uploadResult = await fetch(uploadUrl, {
+            method: "POST",
+            headers: { "Content-Type": blob.type },
+            body: blob,
+          });
+          const { storageId } = await uploadResult.json();
+          await saveResponse({
+            interviewId,
+            questionId: currentQuestion.id,
+            videoStorageId: storageId,
                         duration,
                         attemptNumber: 1,
-                    });
-                } catch (error) {
+          });
+        } catch (error) {
                     console.error("Failed to save response", error);
                 }
             }
@@ -215,9 +215,9 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
             
             // Reset stopping flag for next question
             isStoppingRef.current = false;
-            resolve();
-        };
-        mediaRecorder.stop();
+          resolve();
+      };
+      mediaRecorder.stop();
     });
   };
 
@@ -313,28 +313,28 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
                     <li>You must answer until the timer runs out.</li>
                     <li>There are no retakes allowed.</li>
                 </ul>
-            </div>
+        </div>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Full Name</label>
                 <Input
-                  value={candidateName}
-                  onChange={(e) => setCandidateName(e.target.value)}
+              value={candidateName}
+              onChange={(e) => setCandidateName(e.target.value)}
                   placeholder="Enter your full name"
-                />
-              </div>
+            />
+          </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Email Address</label>
                 <Input
-                  type="email"
-                  value={candidateEmail}
-                  onChange={(e) => setCandidateEmail(e.target.value)}
+              type="email"
+              value={candidateEmail}
+              onChange={(e) => setCandidateEmail(e.target.value)}
                   placeholder="Enter your email"
-                />
-              </div>
-            </div>
+            />
+          </div>
+        </div>
           </CardContent>
           <CardFooter>
             <Button size="lg" className="w-full" onClick={handleStart}>
@@ -371,7 +371,7 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
           <CardHeader>
             <div className="mx-auto bg-green-100 p-4 rounded-full w-fit mb-4">
               <CheckCircle className="w-12 h-12 text-green-600" />
-            </div>
+          </div>
             <CardTitle className="text-3xl font-bold text-green-700">All Done!</CardTitle>
             <CardDescription className="text-lg">
               Your interview has been submitted successfully.
@@ -380,7 +380,7 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
           <CardContent>
             <p className="text-muted-foreground">
               The hiring team will review your responses and contact you at <span className="font-medium text-foreground">{candidateEmail}</span> regarding next steps.
-            </p>
+          </p>
           </CardContent>
         </Card>
       </div>
@@ -395,11 +395,11 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
     <div className="fixed inset-0 bg-black overflow-hidden z-50 flex flex-col">
         {/* Camera Feed Background */}
         <div className="absolute inset-0 z-0">
-             <video
-                ref={videoRef}
-                autoPlay
-                muted
-                playsInline
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          playsInline
                 className="w-full h-full object-cover transform scale-x-[-1]" 
             />
             {/* Dark overlay gradient */}
@@ -416,14 +416,14 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
                 <div className="flex items-center gap-2 bg-red-500/90 text-white px-3 py-1 rounded-full animate-pulse shadow-sm">
                     <div className="w-2 h-2 bg-white rounded-full" />
                     <span className="font-mono font-medium text-sm">
-                        {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, "0")}
-                    </span>
+              {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, "0")}
+            </span>
                     <span className="opacity-75 text-xs border-l border-white/30 pl-2 ml-1">
-                        / {Math.floor(timeLimit / 60)}:{(timeLimit % 60).toString().padStart(2, "0")}
-                    </span>
+                / {Math.floor(timeLimit / 60)}:{(timeLimit % 60).toString().padStart(2, "0")}
+              </span>
                 </div>
             )}
-        </div>
+          </div>
 
         {/* Center Content: Question Overlay */}
         <div className="relative z-10 flex-1 flex flex-col items-center justify-end p-4 pb-12">
@@ -440,18 +440,18 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
                     <div className="flex items-center justify-center gap-2 text-white/60 text-xs font-medium mb-2 uppercase tracking-wider">
                         <Clock className="w-3 h-3" />
                         {timeLimit}s Answer Time
-                    </div>
+      </div>
                     
                     <h2 className="text-xl md:text-2xl font-bold text-white leading-tight mb-6 drop-shadow-sm">
                         {currentQuestion?.text}
                     </h2>
 
-                    {!hasPermissions ? (
+      {!hasPermissions ? (
                         <Button size="lg" className="w-full max-w-sm mx-auto" onClick={requestPermissions}>
                             <Mic className="w-4 h-4 mr-2" />
-                            Enable Camera & Microphone
+          Enable Camera & Microphone
                         </Button>
-                    ) : (
+      ) : (
                         <div className="flex flex-col items-center gap-2">
                             <div className="flex items-center gap-2 text-red-400 font-medium animate-pulse">
                                 <div className="w-3 h-3 bg-red-500 rounded-full" />
@@ -463,7 +463,7 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
                         </div>
                     )}
                 </div>
-            )}
+          )}
         </div>
 
         {/* Bottom Bar: Progress */}

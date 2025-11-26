@@ -241,10 +241,10 @@ export const saveAnalysis = internalMutation({
             ...args.analysis
         });
     } else {
-        await ctx.db.insert("analyses", {
-            interviewId: args.interviewId,
-            ...args.analysis,
-        });
+    await ctx.db.insert("analyses", {
+      interviewId: args.interviewId,
+      ...args.analysis,
+    });
     }
   },
 });

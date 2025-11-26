@@ -81,21 +81,21 @@ export function CreateJobProfile() {
             <div className="space-y-2">
                 <label className="text-sm font-medium leading-none">Job Title</label>
                 <Input
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
                     placeholder="e.g. Senior Product Designer"
-                />
-            </div>
+          />
+        </div>
 
             <div className="space-y-2">
                 <label className="text-sm font-medium leading-none">Job Description</label>
-                <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
                     className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     placeholder="Briefly describe the role..."
-                />
-            </div>
+          />
+        </div>
           </div>
 
           <Separator />
@@ -107,25 +107,25 @@ export function CreateJobProfile() {
                     <Plus className="w-4 h-4 mr-1" /> Add
                 </Button>
              </div>
-             {qualifications.map((qual, idx) => (
+          {qualifications.map((qual, idx) => (
                 <div key={idx} className="flex gap-2">
                     <Input
-                        value={qual}
-                        onChange={(e) => {
-                            const newQuals = [...qualifications];
-                            newQuals[idx] = e.target.value;
-                            setQualifications(newQuals);
-                        }}
+                value={qual}
+                onChange={(e) => {
+                  const newQuals = [...qualifications];
+                  newQuals[idx] = e.target.value;
+                  setQualifications(newQuals);
+                }}
                         placeholder={`Qualification ${idx + 1}`}
-                    />
-                    {qualifications.length > 1 && (
+              />
+              {qualifications.length > 1 && (
                         <Button type="button" variant="ghost" size="icon" onClick={() => setQualifications(qualifications.filter((_, i) => i !== idx))}>
                             <Trash2 className="w-4 h-4 text-destructive" />
                         </Button>
-                    )}
-                </div>
-             ))}
-          </div>
+              )}
+            </div>
+          ))}
+        </div>
 
           <Separator />
 
@@ -136,17 +136,17 @@ export function CreateJobProfile() {
                     <Plus className="w-4 h-4 mr-1" /> Add
                 </Button>
              </div>
-             {questions.map((question, idx) => (
+          {questions.map((question, idx) => (
                  <div key={question.id} className="p-4 border rounded-lg space-y-3 bg-muted/20">
                     <div className="flex gap-2 items-start">
                         <span className="text-sm font-mono text-muted-foreground pt-2.5">{idx + 1}.</span>
                         <Input
-                            value={question.text}
-                            onChange={(e) => {
-                                const newQuestions = [...questions];
-                                newQuestions[idx].text = e.target.value;
-                                setQuestions(newQuestions);
-                            }}
+                value={question.text}
+                onChange={(e) => {
+                  const newQuestions = [...questions];
+                  newQuestions[idx].text = e.target.value;
+                  setQuestions(newQuestions);
+                }}
                             placeholder="Type your question here..."
                         />
                         {questions.length > 1 && (
@@ -169,34 +169,34 @@ export function CreateJobProfile() {
                                 className="w-20 h-8"
                                 placeholder="Secs"
                                 min="10"
-                            />
+              />
                          </div>
                          <div className="flex items-center gap-2">
                              <RefreshCw className="w-4 h-4 text-muted-foreground" />
                              <label className="text-sm text-muted-foreground flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={question.allowRetake}
-                                    onChange={(e) => {
-                                        const newQuestions = [...questions];
-                                        newQuestions[idx].allowRetake = e.target.checked;
-                                        setQuestions(newQuestions);
-                                    }}
+                  <input
+                    type="checkbox"
+                    checked={question.allowRetake}
+                    onChange={(e) => {
+                      const newQuestions = [...questions];
+                      newQuestions[idx].allowRetake = e.target.checked;
+                      setQuestions(newQuestions);
+                    }}
                                     className="rounded border-gray-300"
-                                />
+                  />
                                 Allow retakes
-                             </label>
+                </label>
                          </div>
-                    </div>
-                 </div>
-             ))}
-          </div>
+              </div>
+            </div>
+          ))}
+        </div>
 
           <DialogFooter>
              <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
              <Button type="submit">Create Profile</Button>
           </DialogFooter>
-        </form>
+      </form>
       </DialogContent>
     </Dialog>
   );

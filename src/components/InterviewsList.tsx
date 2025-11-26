@@ -112,13 +112,13 @@ export function InterviewsList() {
   }
 
   const getStatusClass = (status: string) => {
-      switch (status) {
+    switch (status) {
           case "pending": return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-yellow-200";
           case "in_progress": return "bg-blue-100 text-blue-800 hover:bg-blue-100 border-blue-200";
           case "completed": return "bg-purple-100 text-purple-800 hover:bg-purple-100 border-purple-200";
           case "analyzed": return "bg-green-100 text-green-800 hover:bg-green-100 border-green-200";
           default: return "";
-      }
+    }
   }
 
   return (
@@ -134,7 +134,7 @@ export function InterviewsList() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                 />
-            </div>
+              </div>
             <div className="flex flex-wrap gap-3">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className="w-[140px] bg-white">
@@ -237,7 +237,7 @@ export function InterviewsList() {
                                 {interview.overallScore}%
                             </Badge>
                         )}
-                    </div>
+          </div>
                 </CardContent>
                 <CardFooter>
                     <Button
@@ -248,8 +248,8 @@ export function InterviewsList() {
                     </Button>
                 </CardFooter>
                 </Card>
-            ))}
-        </div>
+        ))}
+      </div>
       )}
     </div>
   );

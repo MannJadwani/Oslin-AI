@@ -27,21 +27,21 @@ export function InterviewerDashboard() {
         <div>
             <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
             <p className="text-muted-foreground">Manage job profiles and track candidate submissions.</p>
-        </div>
+      </div>
         <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-lg">
             <Button
                 variant={activeTab === "profiles" ? "default" : "ghost"}
                 size="sm"
-                onClick={() => setActiveTab("profiles")}
+          onClick={() => setActiveTab("profiles")}
                 className="gap-2"
             >
                 <FileText className="w-4 h-4" />
-                Job Profiles
+          Job Profiles
             </Button>
             <Button
                 variant={activeTab === "interviews" ? "default" : "ghost"}
                 size="sm"
-                onClick={() => setActiveTab("interviews")}
+          onClick={() => setActiveTab("interviews")}
                 className="gap-2"
             >
                 <Users className="w-4 h-4" />
@@ -66,7 +66,7 @@ export function InterviewerDashboard() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <CreateJobProfile />
+          <CreateJobProfile />
                 </CardContent>
              </Card>
           </div>

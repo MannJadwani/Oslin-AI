@@ -67,7 +67,7 @@ export function JobProfileList({ onSelectProfile }: JobProfileListProps) {
                 <Button 
                     variant="ghost" 
                     size="sm" 
-                    onClick={() => setExpandedProfile(expandedProfile === profile._id ? null : profile._id)}
+                onClick={() => setExpandedProfile(expandedProfile === profile._id ? null : profile._id)}
                 >
                     {expandedProfile === profile._id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </Button>
@@ -79,34 +79,34 @@ export function JobProfileList({ onSelectProfile }: JobProfileListProps) {
                 <Badge variant="outline" className="text-xs">{profile.qualifications.length} Qualifications</Badge>
              </div>
 
-             {expandedProfile === profile._id && (
+              {expandedProfile === profile._id && (
                  <div className="space-y-4 pt-2 border-t animate-accordion-down">
                     <div className="grid md:grid-cols-2 gap-4">
-                        <div>
+                  <div>
                             <h4 className="text-sm font-medium mb-2">Qualifications</h4>
                             <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
                                 {profile.qualifications.map((q, i) => <li key={i}>{q}</li>)}
-                            </ul>
-                        </div>
-                         <div>
+                    </ul>
+                  </div>
+                  <div>
                             <h4 className="text-sm font-medium mb-2">Questions</h4>
                              <ul className="text-sm text-muted-foreground space-y-2">
                                 {profile.questions.map((q, i) => (
                                     <li key={q.id} className="flex gap-2">
                                         <span className="font-mono text-xs text-primary pt-0.5">{i+1}.</span>
                                         <span>{q.text}</span>
-                                    </li>
-                                ))}
-                            </ul>
+                        </li>
+                      ))}
+                    </ul>
                         </div>
-                    </div>
-                 </div>
-             )}
+                  </div>
+                </div>
+              )}
           </CardContent>
           <CardFooter className="bg-muted/30 p-4 flex gap-3 justify-end items-center">
              <div className="text-xs text-muted-foreground mr-auto hidden sm:block">
                 One link for all candidates
-             </div>
+            </div>
             <Button variant="outline" size="sm" onClick={() => onSelectProfile(profile._id)}>
                 <Eye className="w-4 h-4 mr-2" />
                 View Candidates

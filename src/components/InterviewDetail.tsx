@@ -56,7 +56,7 @@ export function InterviewDetail({ interviewId }: InterviewDetailProps) {
       <Card className="bg-card/50 backdrop-blur-sm">
         <CardHeader>
             <div className="flex justify-between items-start">
-                <div>
+          <div>
                     <CardTitle className="text-2xl">{jobProfile?.title}</CardTitle>
                     <CardDescription>Interview Details</CardDescription>
                 </div>
@@ -82,8 +82,8 @@ export function InterviewDetail({ interviewId }: InterviewDetailProps) {
                 <div className="flex items-center gap-3">
                     <div className="bg-primary/10 p-2 rounded-full">
                         <User className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
+          </div>
+          <div>
                         <p className="text-sm font-medium text-muted-foreground">Candidate</p>
                         <p className="font-semibold">{interview.candidateName}</p>
                     </div>
@@ -91,8 +91,8 @@ export function InterviewDetail({ interviewId }: InterviewDetailProps) {
                 <div className="flex items-center gap-3">
                     <div className="bg-primary/10 p-2 rounded-full">
                         <Mail className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
+          </div>
+          <div>
                         <p className="text-sm font-medium text-muted-foreground">Email</p>
                         <p className="font-semibold truncate max-w-[150px]" title={interview.candidateEmail}>{interview.candidateEmail}</p>
                     </div>
@@ -100,15 +100,15 @@ export function InterviewDetail({ interviewId }: InterviewDetailProps) {
                 <div className="flex items-center gap-3">
                     <div className="bg-primary/10 p-2 rounded-full">
                         <Calendar className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
+          </div>
+          <div>
                         <p className="text-sm font-medium text-muted-foreground">Submitted</p>
                         <p className="font-semibold">
                             {interview.completedAt ? new Date(interview.completedAt).toLocaleDateString() : "Pending"}
                         </p>
-                    </div>
-                </div>
-            </div>
+          </div>
+        </div>
+      </div>
         </CardContent>
       </Card>
 
@@ -119,39 +119,39 @@ export function InterviewDetail({ interviewId }: InterviewDetailProps) {
                 <div className="flex items-center gap-2">
                     <span className="text-3xl font-bold text-primary">{analysis.overallScore}</span>
                     <span className="text-sm text-muted-foreground font-medium uppercase tracking-wider">/ 100 Score</span>
-                </div>
+            </div>
                 <Badge variant="outline" className="bg-background">AI Analysis</Badge>
-             </div>
+          </div>
              <p className="pt-2 text-muted-foreground max-w-3xl">{analysis.summary}</p>
           </CardHeader>
           <CardContent className="pt-6">
             <div className="grid md:grid-cols-2 gap-8">
                 <div className="space-y-4">
-                    <div>
+            <div>
                         <h4 className="flex items-center gap-2 font-semibold text-green-700 mb-2">
                             <CheckCircle2 className="w-4 h-4" /> Strengths
                         </h4>
                         <ul className="space-y-2">
-                            {analysis.strengths.map((strength, idx) => (
+                {analysis.strengths.map((strength, idx) => (
                                 <li key={idx} className="text-sm bg-green-50 text-green-800 px-3 py-2 rounded-md border border-green-100">
                                     {strength}
                                 </li>
-                            ))}
-                        </ul>
-                    </div>
-                    <div>
+                ))}
+              </ul>
+            </div>
+            <div>
                         <h4 className="flex items-center gap-2 font-semibold text-orange-700 mb-2">
                             <AlertTriangle className="w-4 h-4" /> Areas for Improvement
                         </h4>
                          <ul className="space-y-2">
-                            {analysis.weaknesses.map((weakness, idx) => (
+                {analysis.weaknesses.map((weakness, idx) => (
                                 <li key={idx} className="text-sm bg-orange-50 text-orange-800 px-3 py-2 rounded-md border border-orange-100">
                                     {weakness}
                                 </li>
-                            ))}
-                        </ul>
-                    </div>
-                </div>
+                ))}
+              </ul>
+            </div>
+            </div>
 
                 <div className="space-y-6">
                      <div className="grid grid-cols-2 gap-4">
@@ -163,29 +163,29 @@ export function InterviewDetail({ interviewId }: InterviewDetailProps) {
                              <h5 className="text-xs font-semibold uppercase text-muted-foreground mb-1">Confidence</h5>
                              <p className="font-medium text-sm">{analysis.confidenceLevel}</p>
                         </div>
-                     </div>
-                     
+            </div>
+
                      <div className="p-4 bg-muted/30 rounded-lg">
                          <h5 className="text-xs font-semibold uppercase text-muted-foreground mb-1">Skill Alignment</h5>
                          <p className="font-medium text-sm">{analysis.skillAlignment}</p>
-                     </div>
+            </div>
 
-                    {analysis.redFlags.length > 0 && (
+            {analysis.redFlags.length > 0 && (
                         <div>
                             <h4 className="flex items-center gap-2 font-semibold text-destructive mb-2">
                                 <XCircle className="w-4 h-4" /> Red Flags
                             </h4>
                             <ul className="space-y-1">
-                                {analysis.redFlags.map((flag, idx) => (
+                  {analysis.redFlags.map((flag, idx) => (
                                     <li key={idx} className="text-sm text-destructive bg-destructive/5 px-3 py-2 rounded-md border border-destructive/10">
                                         {flag}
                                     </li>
-                                ))}
-                            </ul>
-                        </div>
-                    )}
-                </div>
-            </div>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
           </CardContent>
         </Card>
       )}
@@ -205,7 +205,7 @@ export function InterviewDetail({ interviewId }: InterviewDetailProps) {
                             <span className="text-muted-foreground mr-2">Q{idx + 1}.</span> 
                             {question.text}
                         </h4>
-                        {questionAnalysis && (
+                {questionAnalysis && (
                              <Badge variant={questionAnalysis.score >= 70 ? "default" : "secondary"}>
                                 Score: {questionAnalysis.score}
                              </Badge>
@@ -216,25 +216,25 @@ export function InterviewDetail({ interviewId }: InterviewDetailProps) {
                     {questionAnalysis && (
                          <div className="mb-6 p-4 bg-primary/5 rounded-lg border border-primary/10">
                             <p className="text-sm text-muted-foreground italic">AI Feedback: "{questionAnalysis.feedback}"</p>
-                         </div>
-                    )}
+                  </div>
+                )}
 
-                    {response ? (
+                {response ? (
                         <div className="grid md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
+                  <div className="space-y-2">
                                 <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
                                     <PlayCircle className="w-4 h-4" /> Video Response
                                 </div>
-                                {response.videoUrl && (
-                                    <video
-                                        src={response.videoUrl}
-                                        controls
+                    {response.videoUrl && (
+                      <video
+                        src={response.videoUrl}
+                        controls
                                         className="w-full rounded-lg bg-black aspect-video"
                                     />
-                                )}
+                    )}
                                 <p className="text-xs text-muted-foreground text-right">
-                                    Duration: {Math.floor(response.duration)}s
-                                </p>
+                      Duration: {Math.floor(response.duration)}s
+                    </p>
                             </div>
                             
                             <div className="space-y-2">
@@ -245,12 +245,12 @@ export function InterviewDetail({ interviewId }: InterviewDetailProps) {
                                     {response.transcript || <span className="text-muted-foreground italic">No transcript available.</span>}
                                 </div>
                             </div>
-                        </div>
-                    ) : (
+                  </div>
+                ) : (
                          <div className="text-center py-8 text-muted-foreground bg-muted/10 rounded-lg border-dashed border">
                             No response recorded for this question.
                         </div>
-                    )}
+                )}
                 </CardContent>
               </Card>
             );

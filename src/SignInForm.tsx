@@ -23,44 +23,44 @@ export function SignInForm() {
         </p>
       </div>
       <div>
-        <form
+      <form
             className="flex flex-col gap-4"
-            onSubmit={(e) => {
-            e.preventDefault();
-            setSubmitting(true);
-            const formData = new FormData(e.target as HTMLFormElement);
-            formData.set("flow", flow);
-            void signIn("password", formData).catch((error) => {
-                let toastTitle = "";
-                if (error.message.includes("Invalid password")) {
-                toastTitle = "Invalid password. Please try again.";
-                } else {
-                toastTitle =
-                    flow === "signIn"
-                    ? "Could not sign in, did you mean to sign up?"
-                    : "Could not sign up, did you mean to sign in?";
-                }
-                toast.error(toastTitle);
-                setSubmitting(false);
-            });
-            }}
-        >
+        onSubmit={(e) => {
+          e.preventDefault();
+          setSubmitting(true);
+          const formData = new FormData(e.target as HTMLFormElement);
+          formData.set("flow", flow);
+          void signIn("password", formData).catch((error) => {
+            let toastTitle = "";
+            if (error.message.includes("Invalid password")) {
+              toastTitle = "Invalid password. Please try again.";
+            } else {
+              toastTitle =
+                flow === "signIn"
+                  ? "Could not sign in, did you mean to sign up?"
+                  : "Could not sign up, did you mean to sign in?";
+            }
+            toast.error(toastTitle);
+            setSubmitting(false);
+          });
+        }}
+      >
             <Input
             name="email"
             placeholder="Email address"
-            type="email"
-            required
+          type="email"
+          required
             autoComplete="email"
-            />
+        />
             <Input
-            name="password"
-            placeholder="Password"
+          name="password"
+          placeholder="Password"
             type="password"
-            required
+          required
             autoComplete={flow === "signIn" ? "current-password" : "new-password"}
-            />
+        />
             <Button type="submit" disabled={submitting} className="w-full">
-            {flow === "signIn" ? "Sign in" : "Sign up"}
+          {flow === "signIn" ? "Sign in" : "Sign up"}
             </Button>
         </form>
 
@@ -81,7 +81,7 @@ export function SignInForm() {
       </div>
       <div className="flex justify-center mt-6">
         <div className="text-sm text-muted-foreground">
-          {flow === "signIn"
+            {flow === "signIn"
               ? "Don't have an account? "
               : "Already have an account? "}
           <Button

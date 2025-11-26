@@ -46,10 +46,10 @@ export const getByLink = query({
       .first();
 
     if (interview) {
-      const jobProfile = await ctx.db.get(interview.jobProfileId);
-      return {
-        interview,
-        jobProfile,
+    const jobProfile = await ctx.db.get(interview.jobProfileId);
+    return {
+      interview,
+      jobProfile,
         type: "invite" as const
       };
     }
