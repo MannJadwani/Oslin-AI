@@ -1,11 +1,11 @@
 import { Authenticated, Unauthenticated, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
-import { SignInForm } from "./SignInForm";
-import { Toaster } from "sonner";
-import { InterviewerDashboard } from "./components/InterviewerDashboard";
+import { LandingPage } from "./components/LandingPage";
 import { CandidateInterview } from "./components/CandidateInterview";
+import { useState, useEffect } from "react";
+import { Toaster } from "sonner";
 import { Layout } from "./components/Layout";
-import { useEffect, useState } from "react";
+import { InterviewerDashboard } from "./components/InterviewerDashboard";
 
 export default function App() {
   const [linkId, setLinkId] = useState<string | null>(null);
@@ -52,20 +52,7 @@ function Content() {
       </Authenticated>
 
       <Unauthenticated>
-        <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-muted/30">
-          <div className="w-full max-w-md space-y-8 text-center mb-8">
-              <div>
-                <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-2">
-                  <span className="text-primary">Oslin</span>
-                  <span className="text-muted-foreground/80"> AI</span>
-                </h1>
-                <p className="text-muted-foreground text-lg">
-                    AI-powered video interviews for smarter hiring
-                </p>
-              </div>
-          </div>
-          <SignInForm />
-        </div>
+        <LandingPage />
       </Unauthenticated>
     </>
   );

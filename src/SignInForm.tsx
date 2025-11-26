@@ -4,7 +4,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function SignInForm() {
   const { signIn } = useAuthActions();
@@ -12,18 +11,18 @@ export function SignInForm() {
   const [submitting, setSubmitting] = useState(false);
 
   return (
-    <Card className="w-full max-w-md mx-auto shadow-lg border-0 bg-white/50 backdrop-blur-sm">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold tracking-tight text-center">
+    <div className="w-full max-w-md mx-auto p-6">
+      <div className="space-y-1 mb-6">
+        <h2 className="text-2xl font-bold tracking-tight text-center">
             {flow === "signIn" ? "Welcome back" : "Create an account"}
-        </CardTitle>
-        <CardDescription className="text-center">
+        </h2>
+        <p className="text-center text-muted-foreground">
             {flow === "signIn"
               ? "Enter your credentials to access your account"
               : "Enter your email below to create your account"}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+        </p>
+      </div>
+      <div>
         <form
             className="flex flex-col gap-4"
             onSubmit={(e) => {
@@ -79,8 +78,8 @@ export function SignInForm() {
         <Button variant="outline" className="w-full" onClick={() => void signIn("anonymous")}>
             Sign in anonymously
         </Button>
-      </CardContent>
-      <CardFooter className="justify-center">
+      </div>
+      <div className="flex justify-center mt-6">
         <div className="text-sm text-muted-foreground">
           {flow === "signIn"
               ? "Don't have an account? "
@@ -93,7 +92,7 @@ export function SignInForm() {
             {flow === "signIn" ? "Sign up" : "Sign in"}
           </Button>
         </div>
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
 }
