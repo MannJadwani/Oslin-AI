@@ -55,9 +55,12 @@ function Content() {
         <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-muted/30">
           <div className="w-full max-w-md space-y-8 text-center mb-8">
               <div>
-                <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl text-primary mb-2">InterviewAI</h1>
+                <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-2">
+                  <span className="text-primary">Oslin</span>
+                  <span className="text-muted-foreground/80"> AI</span>
+                </h1>
                 <p className="text-muted-foreground text-lg">
-                    AI-powered video interview platform for smarter hiring
+                    AI-powered video interviews for smarter hiring
                 </p>
               </div>
           </div>

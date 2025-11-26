@@ -25,7 +25,10 @@ export function Layout({ children }: LayoutProps) {
           <div className="bg-primary/10 p-2 rounded-lg">
             <Video className="w-6 h-6 text-primary" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight">InterviewAI</h1>
+          <h1 className="text-xl font-bold tracking-tight">
+            <span className="text-primary">Oslin</span>
+            <span className="text-muted-foreground/80"> AI</span>
+          </h1>
         </div>
 
         <nav className="flex flex-col gap-2 flex-1">
@@ -56,7 +59,10 @@ export function Layout({ children }: LayoutProps) {
       <div className="md:hidden fixed top-0 left-0 right-0 h-16 border-b bg-background flex items-center justify-between px-4 z-20">
         <div className="flex items-center gap-2">
             <Video className="w-6 h-6 text-primary" />
-            <h1 className="text-xl font-bold">InterviewAI</h1>
+            <h1 className="text-xl font-bold">
+              <span className="text-primary">Oslin</span>
+              <span className="text-muted-foreground/80"> AI</span>
+            </h1>
         </div>
         <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
             <Menu className="w-5 h-5" />

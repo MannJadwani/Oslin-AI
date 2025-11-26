@@ -296,7 +296,11 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
             <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit mb-2">
               <Video className="w-8 h-8 text-primary" />
             </div>
-            <CardTitle className="text-3xl font-bold">Video Interview</CardTitle>
+            <CardTitle className="text-3xl font-bold">
+              <span className="text-primary">Oslin</span>
+              <span className="text-muted-foreground/80"> AI</span>
+              <span className="block text-xl font-medium text-foreground mt-1">Video Interview</span>
+            </CardTitle>
             <div className="space-y-2">
               <h2 className="text-xl font-semibold text-foreground">{data.jobProfile?.title}</h2>
               <p className="text-muted-foreground max-w-lg mx-auto">{data.jobProfile?.description}</p>
