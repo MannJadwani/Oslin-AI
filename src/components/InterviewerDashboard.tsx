@@ -1,48 +1,80 @@
 import { useState } from "react";
-import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
 import { CreateJobProfile } from "./CreateJobProfile";
 import { JobProfileList } from "./JobProfileList";
 import { InterviewsList } from "./InterviewsList";
 import { Id } from "../../convex/_generated/dataModel";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PlusCircle, List, FileText, Users } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 export function InterviewerDashboard() {
   const [activeTab, setActiveTab] = useState<"profiles" | "interviews">("profiles");
   const [selectedProfile, setSelectedProfile] = useState<Id<"jobProfiles"> | null>(null);
 
+  // If a profile is selected from the list, switch to interviews tab filtered by that profile
+  // For simplicity in this iteration, we just switch tabs.
+  // Ideally we would filter the list, but let's keep it simple first.
+  const handleSelectProfile = (id: Id<"jobProfiles">) => {
+      // In a real app we'd filter, here we just switch view to all candidates
+      // You could pass the ID to InterviewsList to filter
+      setActiveTab("interviews");
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-primary">Dashboard</h1>
+    <div className="space-y-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+            <p className="text-muted-foreground">Manage job profiles and track candidate submissions.</p>
+        </div>
+        <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-lg">
+            <Button
+                variant={activeTab === "profiles" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setActiveTab("profiles")}
+                className="gap-2"
+            >
+                <FileText className="w-4 h-4" />
+                Job Profiles
+            </Button>
+            <Button
+                variant={activeTab === "interviews" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setActiveTab("interviews")}
+                className="gap-2"
+            >
+                <Users className="w-4 h-4" />
+                Candidates
+            </Button>
+        </div>
       </div>
 
-      <div className="flex gap-2 border-b">
-        <button
-          onClick={() => setActiveTab("profiles")}
-          className={`px-4 py-2 font-medium transition-colors ${
-            activeTab === "profiles"
-              ? "text-primary border-b-2 border-primary"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          Job Profiles
-        </button>
-        <button
-          onClick={() => setActiveTab("interviews")}
-          className={`px-4 py-2 font-medium transition-colors ${
-            activeTab === "interviews"
-              ? "text-primary border-b-2 border-primary"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          All Interviews
-        </button>
-      </div>
+      <Separator />
 
       {activeTab === "profiles" ? (
-        <div className="space-y-6">
-          <CreateJobProfile />
-          <JobProfileList onSelectProfile={setSelectedProfile} />
+        <div className="space-y-8">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+             <Card className="bg-primary/5 border-primary/10">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <PlusCircle className="w-5 h-5 text-primary" />
+                        New Job Profile
+                    </CardTitle>
+                    <CardDescription>
+                        Create a new position description to start interviewing candidates.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <CreateJobProfile />
+                </CardContent>
+             </Card>
+          </div>
+          
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold tracking-tight">Active Profiles</h2>
+            <JobProfileList onSelectProfile={handleSelectProfile} />
+          </div>
         </div>
       ) : (
         <InterviewsList />

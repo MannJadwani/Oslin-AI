@@ -1,6 +1,8 @@
 "use client";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useConvexAuth } from "convex/react";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
 
 export function SignOutButton() {
   const { isAuthenticated } = useConvexAuth();
@@ -11,11 +13,13 @@ export function SignOutButton() {
   }
 
   return (
-    <button
-      className="px-4 py-2 rounded bg-white text-secondary border border-gray-200 font-semibold hover:bg-gray-50 hover:text-secondary-hover transition-colors shadow-sm hover:shadow"
+    <Button
+      variant="outline"
+      className="w-full justify-start gap-2 border-destructive/20 text-destructive hover:bg-destructive/5 hover:text-destructive"
       onClick={() => void signOut()}
     >
+      <LogOut className="w-4 h-4" />
       Sign out
-    </button>
+    </Button>
   );
 }

@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
+// Keep for backward compatibility if needed, but we encourage public links
 function generateLinkId(): string {
   return Math.random().toString(36).substring(2, 15) + 
          Math.random().toString(36).substring(2, 15);
@@ -38,21 +39,36 @@ export const create = mutation({
 export const getByLink = query({
   args: { linkId: v.string() },
   handler: async (ctx, args) => {
+    // Try to find a specific interview first (legacy/unique invite)
     const interview = await ctx.db
       .query("interviews")
       .withIndex("by_link_id", (q) => q.eq("linkId", args.linkId))
       .first();
 
-    if (!interview) {
-      return null;
+    if (interview) {
+      const jobProfile = await ctx.db.get(interview.jobProfileId);
+      return {
+        interview,
+        jobProfile,
+        type: "invite" as const
+      };
     }
 
-    const jobProfile = await ctx.db.get(interview.jobProfileId);
-    
-    return {
-      interview,
-      jobProfile,
-    };
+    // If not found, check if it's a public link for a job profile
+    const jobProfile = await ctx.db
+      .query("jobProfiles")
+      .withIndex("by_public_link_id", (q) => q.eq("publicLinkId", args.linkId))
+      .first();
+
+    if (jobProfile && jobProfile.status === "active") {
+        return {
+            interview: null,
+            jobProfile,
+            type: "public" as const
+        };
+    }
+
+    return null;
   },
 });
 
@@ -63,27 +79,73 @@ export const startInterview = mutation({
     candidateEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const interview = await ctx.db
+    // 1. Check if it's a unique invite link
+    const existingInterview = await ctx.db
       .query("interviews")
       .withIndex("by_link_id", (q) => q.eq("linkId", args.linkId))
       .first();
 
+    if (existingInterview) {
+      if (existingInterview.status !== "pending") {
+         throw new Error("Interview already started");
+      }
+      
+      await ctx.db.patch(existingInterview._id, {
+        candidateName: args.candidateName,
+        candidateEmail: args.candidateEmail,
+        status: "in_progress",
+        startedAt: Date.now(),
+      });
+      return existingInterview._id;
+    }
+
+    // 2. Check if it's a public link
+    const jobProfile = await ctx.db
+        .query("jobProfiles")
+        .withIndex("by_public_link_id", (q) => q.eq("publicLinkId", args.linkId))
+        .first();
+
+    if (!jobProfile || jobProfile.status !== "active") {
+        throw new Error("Invalid or expired link");
+    }
+
+    // Create a new interview session
+    const interviewId = await ctx.db.insert("interviews", {
+        jobProfileId: jobProfile._id,
+        interviewerId: jobProfile.interviewerId,
+        candidateName: args.candidateName,
+        candidateEmail: args.candidateEmail,
+        status: "in_progress",
+        startedAt: Date.now(),
+        // We don't need a linkId for the interview itself if it came from a public link
+        // OR we can generate one if we want shareable individual results later
+    });
+
+    return interviewId;
+  },
+});
+
+export const endInterview = mutation({
+  args: { interviewId: v.id("interviews") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Not authenticated");
+    }
+
+    const interview = await ctx.db.get(args.interviewId);
     if (!interview) {
       throw new Error("Interview not found");
     }
 
-    if (interview.status !== "pending") {
-      throw new Error("Interview already started");
+    if (interview.interviewerId !== userId) {
+      throw new Error("Not authorized");
     }
 
-    await ctx.db.patch(interview._id, {
-      candidateName: args.candidateName,
-      candidateEmail: args.candidateEmail,
-      status: "in_progress",
-      startedAt: Date.now(),
+    await ctx.db.patch(args.interviewId, {
+      status: "completed",
+      completedAt: Date.now(),
     });
-
-    return interview._id;
   },
 });
 
@@ -122,9 +184,15 @@ export const listAll = query({
     const withProfiles = await Promise.all(
       interviews.map(async (interview) => {
         const jobProfile = await ctx.db.get(interview.jobProfileId);
+        const analysis = await ctx.db
+            .query("analyses")
+            .withIndex("by_interview", (q) => q.eq("interviewId", interview._id))
+            .first();
+
         return {
           ...interview,
           jobTitle: jobProfile?.title || "Unknown",
+          overallScore: analysis?.overallScore,
         };
       })
     );

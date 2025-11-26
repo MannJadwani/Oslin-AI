@@ -1,7 +1,8 @@
 import { v } from "convex/values";
-import { internalAction, internalMutation, internalQuery } from "./_generated/server";
+import { internalAction, internalMutation, internalQuery, mutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import OpenAI from "openai";
+import { getAuthUserId } from "@convex-dev/auth/server";
 
 // Model configuration - using latest OpenAI models (2025)
 const TRANSCRIPTION_MODEL = "gpt-4o-mini-transcribe"; // Latest transcription model, better than Whisper
@@ -18,6 +19,35 @@ function getOpenAIClient(): OpenAI {
   }
   return new OpenAI({ apiKey });
 }
+
+// Public mutation to request re-analysis
+export const requestAnalysis = mutation({
+  args: { interviewId: v.id("interviews") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Not authenticated");
+    }
+
+    const interview = await ctx.db.get(args.interviewId);
+    if (!interview) {
+      throw new Error("Interview not found");
+    }
+
+    if (interview.interviewerId !== userId) {
+      throw new Error("Not authorized");
+    }
+
+    if (interview.status !== "completed" && interview.status !== "analyzed") {
+      throw new Error("Interview must be completed to be analyzed");
+    }
+
+    // Trigger AI analysis
+    await ctx.scheduler.runAfter(0, internal.ai.analyzeInterview, {
+      interviewId: args.interviewId,
+    });
+  },
+});
 
 export const analyzeInterview = internalAction({
   args: { interviewId: v.id("interviews") },
@@ -42,6 +72,12 @@ export const analyzeInterview = internalAction({
     
     for (const response of responses) {
       try {
+        if (response.transcript) {
+            console.log(`Using existing transcript for question ${response.questionId}`);
+            transcripts[response.questionId] = response.transcript;
+            continue;
+        }
+
         console.log(`Transcribing response for question: ${response.questionId}`);
         const videoFile = await ctx.storage.get(response.videoStorageId);
         if (!videoFile) {
@@ -193,10 +229,23 @@ export const saveAnalysis = internalMutation({
     }),
   },
   handler: async (ctx, args) => {
-    await ctx.db.insert("analyses", {
-      interviewId: args.interviewId,
-      ...args.analysis,
-    });
+    // Check if analysis already exists, if so replace it, otherwise insert
+    const existing = await ctx.db
+        .query("analyses")
+        .withIndex("by_interview", (q) => q.eq("interviewId", args.interviewId))
+        .first();
+
+    if (existing) {
+        await ctx.db.replace(existing._id, {
+            interviewId: args.interviewId,
+            ...args.analysis
+        });
+    } else {
+        await ctx.db.insert("analyses", {
+            interviewId: args.interviewId,
+            ...args.analysis,
+        });
+    }
   },
 });
 

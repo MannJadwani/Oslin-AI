@@ -2,6 +2,9 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function SignInForm() {
   const { signIn } = useAuthActions();
@@ -9,69 +12,88 @@ export function SignInForm() {
   const [submitting, setSubmitting] = useState(false);
 
   return (
-    <div className="w-full">
-      <form
-        className="flex flex-col gap-form-field"
-        onSubmit={(e) => {
-          e.preventDefault();
-          setSubmitting(true);
-          const formData = new FormData(e.target as HTMLFormElement);
-          formData.set("flow", flow);
-          void signIn("password", formData).catch((error) => {
-            let toastTitle = "";
-            if (error.message.includes("Invalid password")) {
-              toastTitle = "Invalid password. Please try again.";
-            } else {
-              toastTitle =
-                flow === "signIn"
-                  ? "Could not sign in, did you mean to sign up?"
-                  : "Could not sign up, did you mean to sign in?";
-            }
-            toast.error(toastTitle);
-            setSubmitting(false);
-          });
-        }}
-      >
-        <input
-          className="auth-input-field"
-          type="email"
-          name="email"
-          placeholder="Email"
-          required
-        />
-        <input
-          className="auth-input-field"
-          type="password"
-          name="password"
-          placeholder="Password"
-          required
-        />
-        <button className="auth-button" type="submit" disabled={submitting}>
-          {flow === "signIn" ? "Sign in" : "Sign up"}
-        </button>
-        <div className="text-center text-sm text-secondary">
-          <span>
+    <Card className="w-full max-w-md mx-auto shadow-lg border-0 bg-white/50 backdrop-blur-sm">
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-2xl font-bold tracking-tight text-center">
+            {flow === "signIn" ? "Welcome back" : "Create an account"}
+        </CardTitle>
+        <CardDescription className="text-center">
             {flow === "signIn"
+              ? "Enter your credentials to access your account"
+              : "Enter your email below to create your account"}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form
+            className="flex flex-col gap-4"
+            onSubmit={(e) => {
+            e.preventDefault();
+            setSubmitting(true);
+            const formData = new FormData(e.target as HTMLFormElement);
+            formData.set("flow", flow);
+            void signIn("password", formData).catch((error) => {
+                let toastTitle = "";
+                if (error.message.includes("Invalid password")) {
+                toastTitle = "Invalid password. Please try again.";
+                } else {
+                toastTitle =
+                    flow === "signIn"
+                    ? "Could not sign in, did you mean to sign up?"
+                    : "Could not sign up, did you mean to sign in?";
+                }
+                toast.error(toastTitle);
+                setSubmitting(false);
+            });
+            }}
+        >
+            <Input
+            name="email"
+            placeholder="Email address"
+            type="email"
+            required
+            autoComplete="email"
+            />
+            <Input
+            name="password"
+            placeholder="Password"
+            type="password"
+            required
+            autoComplete={flow === "signIn" ? "current-password" : "new-password"}
+            />
+            <Button type="submit" disabled={submitting} className="w-full">
+            {flow === "signIn" ? "Sign in" : "Sign up"}
+            </Button>
+        </form>
+
+        <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                Or continue with
+                </span>
+            </div>
+        </div>
+
+        <Button variant="outline" className="w-full" onClick={() => void signIn("anonymous")}>
+            Sign in anonymously
+        </Button>
+      </CardContent>
+      <CardFooter className="justify-center">
+        <div className="text-sm text-muted-foreground">
+          {flow === "signIn"
               ? "Don't have an account? "
               : "Already have an account? "}
-          </span>
-          <button
-            type="button"
-            className="text-primary hover:text-primary-hover hover:underline font-medium cursor-pointer"
+          <Button
+            variant="link"
+            className="p-0 h-auto font-normal text-primary"
             onClick={() => setFlow(flow === "signIn" ? "signUp" : "signIn")}
           >
-            {flow === "signIn" ? "Sign up instead" : "Sign in instead"}
-          </button>
+            {flow === "signIn" ? "Sign up" : "Sign in"}
+          </Button>
         </div>
-      </form>
-      <div className="flex items-center justify-center my-3">
-        <hr className="my-4 grow border-gray-200" />
-        <span className="mx-4 text-secondary">or</span>
-        <hr className="my-4 grow border-gray-200" />
-      </div>
-      <button className="auth-button" onClick={() => void signIn("anonymous")}>
-        Sign in anonymously
-      </button>
-    </div>
+      </CardFooter>
+    </Card>
   );
 }

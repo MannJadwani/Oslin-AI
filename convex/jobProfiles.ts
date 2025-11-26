@@ -2,6 +2,11 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
+function generatePublicLinkId(): string {
+  return Math.random().toString(36).substring(2, 15) + 
+         Math.random().toString(36).substring(2, 15);
+}
+
 export const create = mutation({
   args: {
     title: v.string(),
@@ -27,6 +32,7 @@ export const create = mutation({
       qualifications: args.qualifications,
       questions: args.questions,
       status: "active",
+      publicLinkId: generatePublicLinkId(),
     });
 
     return jobProfileId;
@@ -61,13 +67,54 @@ export const get = query({
       return null;
     }
 
-    // Allow access if user is the interviewer or if accessing for interview
+    // Allow access if user is the interviewer
     if (userId && profile.interviewerId !== userId) {
       return null;
     }
 
     return profile;
   },
+});
+
+export const getByPublicLink = query({
+  args: { publicLinkId: v.string() },
+  handler: async (ctx, args) => {
+    const profile = await ctx.db
+      .query("jobProfiles")
+      .withIndex("by_public_link_id", (q) => q.eq("publicLinkId", args.publicLinkId))
+      .first();
+    
+    if (!profile || profile.status === "archived") {
+      return null;
+    }
+
+    // Publicly accessible, but filter out sensitive internal info if any (none for now)
+    return {
+      _id: profile._id,
+      title: profile.title,
+      description: profile.description,
+      questions: profile.questions,
+      qualifications: profile.qualifications,
+    };
+  },
+});
+
+export const generatePublicLinkIfMissing = mutation({
+  args: { id: v.id("jobProfiles") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthorized");
+    
+    const profile = await ctx.db.get(args.id);
+    if (!profile || profile.interviewerId !== userId) throw new Error("Unauthorized");
+    
+    if (!profile.publicLinkId) {
+      const publicLinkId = generatePublicLinkId();
+      await ctx.db.patch(args.id, { publicLinkId });
+      return publicLinkId;
+    }
+    return profile.publicLinkId;
+  }
 });
 
 export const update = mutation({

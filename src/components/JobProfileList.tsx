@@ -3,6 +3,12 @@ import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ChevronDown, ChevronUp, Link as LinkIcon, Eye, Copy } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface JobProfileListProps {
   onSelectProfile: (id: Id<"jobProfiles">) => void;
@@ -10,94 +16,116 @@ interface JobProfileListProps {
 
 export function JobProfileList({ onSelectProfile }: JobProfileListProps) {
   const profiles = useQuery(api.jobProfiles.list);
-  const createInterview = useMutation(api.interviews.create);
+  const generatePublicLink = useMutation(api.jobProfiles.generatePublicLinkIfMissing);
   const [expandedProfile, setExpandedProfile] = useState<Id<"jobProfiles"> | null>(null);
 
-  const handleCreateInterview = async (profileId: Id<"jobProfiles">) => {
+  const handleCopyLink = async (profile: any) => {
     try {
-      const result = await createInterview({ jobProfileId: profileId });
-      const link = `${window.location.origin}?interview=${result.linkId}`;
+        let linkId = profile.publicLinkId;
+        if (!linkId) {
+            // Generate on the fly if missing (for old profiles)
+            linkId = await generatePublicLink({ id: profile._id });
+        }
+      const link = `${window.location.origin}?interview=${linkId}`;
       
       await navigator.clipboard.writeText(link);
-      toast.success("Interview link copied to clipboard!");
+      toast.success("Job link copied! Send this to all candidates.");
     } catch (error) {
-      toast.error("Failed to create interview link");
+      toast.error("Failed to copy link");
     }
   };
 
   if (profiles === undefined) {
-    return <div className="text-center py-8">Loading...</div>;
+    return (
+        <div className="space-y-4">
+             {[1, 2].map((i) => (
+                 <Skeleton key={i} className="h-[200px] w-full rounded-xl" />
+             ))}
+        </div>
+    );
   }
 
   if (profiles.length === 0) {
     return (
-      <div className="text-center py-12 bg-white rounded-lg shadow">
-        <p className="text-gray-500">No job profiles yet. Create one to get started!</p>
-      </div>
+      <Card className="flex flex-col items-center justify-center p-8 text-center bg-muted/10 border-dashed">
+        <CardTitle className="text-lg mb-2">No job profiles</CardTitle>
+        <p className="text-muted-foreground">Get started by creating your first job profile.</p>
+      </Card>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Your Job Profiles</h2>
+    <div className="grid gap-6">
       {profiles.map((profile) => (
-        <div key={profile._id} className="bg-white rounded-lg shadow p-6">
-          <div className="flex justify-between items-start mb-4">
-            <div className="flex-1">
-              <h3 className="text-xl font-semibold mb-2">{profile.title}</h3>
-              <p className="text-gray-600 mb-3">{profile.description}</p>
-              
-              <button
-                onClick={() => setExpandedProfile(expandedProfile === profile._id ? null : profile._id)}
-                className="text-sm text-primary hover:underline"
-              >
-                {expandedProfile === profile._id ? "Hide details" : "Show details"}
-              </button>
-
-              {expandedProfile === profile._id && (
-                <div className="mt-4 space-y-3">
-                  <div>
-                    <h4 className="font-medium mb-1">Qualifications:</h4>
-                    <ul className="list-disc list-inside text-sm text-gray-600">
-                      {profile.qualifications.map((qual, idx) => (
-                        <li key={idx}>{qual}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="font-medium mb-1">Questions ({profile.questions.length}):</h4>
-                    <ul className="space-y-2 text-sm text-gray-600">
-                      {profile.questions.map((q, idx) => (
-                        <li key={q.id} className="border-l-2 border-primary pl-3">
-                          <p className="font-medium">Q{idx + 1}: {q.text}</p>
-                          <p className="text-xs text-gray-500">
-                            {q.timeLimit ? `${q.timeLimit}s limit` : "No time limit"} • 
-                            {q.allowRetake ? " Retakes allowed" : " No retakes"}
-                          </p>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+        <Card key={profile._id} className="transition-all hover:shadow-md">
+          <CardHeader className="pb-3">
+            <div className="flex justify-between items-start">
+                <div>
+                    <CardTitle className="text-xl mb-1">{profile.title}</CardTitle>
+                    <CardDescription className="line-clamp-2">{profile.description}</CardDescription>
                 </div>
-              )}
+                <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setExpandedProfile(expandedProfile === profile._id ? null : profile._id)}
+                >
+                    {expandedProfile === profile._id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </Button>
             </div>
-          </div>
+          </CardHeader>
+          <CardContent className="pb-3">
+             <div className="flex gap-2 flex-wrap mb-4">
+                <Badge variant="secondary" className="text-xs">{profile.questions.length} Questions</Badge>
+                <Badge variant="outline" className="text-xs">{profile.qualifications.length} Qualifications</Badge>
+             </div>
 
-          <div className="flex gap-3">
-            <button
-              onClick={() => handleCreateInterview(profile._id)}
-              className="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary-hover transition-colors"
-            >
-              Generate Interview Link
-            </button>
-            <button
-              onClick={() => onSelectProfile(profile._id)}
-              className="px-4 py-2 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-            >
-              View Interviews
-            </button>
-          </div>
-        </div>
+             {expandedProfile === profile._id && (
+                 <div className="space-y-4 pt-2 border-t animate-accordion-down">
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <h4 className="text-sm font-medium mb-2">Qualifications</h4>
+                            <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                                {profile.qualifications.map((q, i) => <li key={i}>{q}</li>)}
+                            </ul>
+                        </div>
+                         <div>
+                            <h4 className="text-sm font-medium mb-2">Questions</h4>
+                             <ul className="text-sm text-muted-foreground space-y-2">
+                                {profile.questions.map((q, i) => (
+                                    <li key={q.id} className="flex gap-2">
+                                        <span className="font-mono text-xs text-primary pt-0.5">{i+1}.</span>
+                                        <span>{q.text}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+                 </div>
+             )}
+          </CardContent>
+          <CardFooter className="bg-muted/30 p-4 flex gap-3 justify-end items-center">
+             <div className="text-xs text-muted-foreground mr-auto hidden sm:block">
+                One link for all candidates
+             </div>
+            <Button variant="outline" size="sm" onClick={() => onSelectProfile(profile._id)}>
+                <Eye className="w-4 h-4 mr-2" />
+                View Candidates
+            </Button>
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                         <Button size="sm" onClick={() => handleCopyLink(profile)}>
+                            <Copy className="w-4 h-4 mr-2" />
+                            Copy Job Link
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Share this single link with all candidates</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+          </CardFooter>
+        </Card>
       ))}
     </div>
   );

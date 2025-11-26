@@ -15,12 +15,15 @@ const applicationTables = {
       allowRetake: v.boolean(),
     })),
     status: v.union(v.literal("active"), v.literal("archived")),
-  }).index("by_interviewer", ["interviewerId"]),
+    publicLinkId: v.optional(v.string()), // For sharing public links
+  })
+    .index("by_interviewer", ["interviewerId"])
+    .index("by_public_link_id", ["publicLinkId"]),
 
   interviews: defineTable({
     jobProfileId: v.id("jobProfiles"),
     interviewerId: v.id("users"),
-    linkId: v.string(), // unique shareable link identifier
+    linkId: v.optional(v.string()), // Keeping for backward compatibility or unique invites
     candidateName: v.optional(v.string()),
     candidateEmail: v.optional(v.string()),
     status: v.union(
