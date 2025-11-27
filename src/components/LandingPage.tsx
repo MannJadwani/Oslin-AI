@@ -82,8 +82,8 @@ export function LandingPage() {
                         Get Started
                     </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-md p-0 border-0 bg-transparent shadow-none">
-                    <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100">
+                <DialogContent className="sm:max-w-md p-0 border-0 bg-transparent shadow-none overflow-visible">
+                    <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100 ring-1 ring-slate-900/5">
                         <SignInForm />
                     </div>
                 </DialogContent>

@@ -3,13 +3,11 @@ import { api } from "../../convex/_generated/api";
 import { useState, useMemo } from "react";
 import { InterviewDetail } from "./InterviewDetail";
 import { Id } from "../../convex/_generated/dataModel";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Clock, Calendar, Mail, User, Search, Filter } from "lucide-react";
+import { ArrowLeft, Calendar, User, Search, AlertCircle, CheckCircle2, Clock, ChevronRight } from "lucide-react";
 
 type SortKey = "date" | "score" | "title";
 
@@ -75,20 +73,12 @@ export function InterviewsList() {
 
   if (interviews === undefined) {
     return (
-        <div className="space-y-4">
-            <div className="flex gap-4">
-                <Skeleton className="h-10 flex-1" />
-                <Skeleton className="h-10 w-[150px]" />
-            </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {[1, 2, 3].map((i) => (
-                    <div key={i} className="space-y-3">
-                        <Skeleton className="h-[125px] w-full rounded-xl" />
-                        <div className="space-y-2">
-                            <Skeleton className="h-4 w-[250px]" />
-                            <Skeleton className="h-4 w-[200px]" />
-                        </div>
-                    </div>
+        <div className="space-y-6">
+            <Skeleton className="h-12 w-full rounded-xl" />
+            <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                <Skeleton className="h-14 w-full" />
+                {[1, 2, 3, 4, 5].map((i) => (
+                    <Skeleton key={i} className="h-16 w-full" />
                 ))}
             </div>
         </div>
@@ -97,59 +87,59 @@ export function InterviewsList() {
 
   if (selectedInterview) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
         <Button
           variant="ghost"
           onClick={() => setSelectedInterview(null)}
-          className="gap-2 pl-0 hover:pl-2 transition-all"
+          className="gap-2 pl-0 hover:pl-2 transition-all rounded-xl hover:bg-slate-100"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to all candidates
+          Back to candidates
         </Button>
         <InterviewDetail interviewId={selectedInterview} />
       </div>
     );
   }
 
-  const getStatusClass = (status: string) => {
+  const getStatusConfig = (status: string) => {
     switch (status) {
-          case "pending": return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-yellow-200";
-          case "in_progress": return "bg-blue-100 text-blue-800 hover:bg-blue-100 border-blue-200";
-          case "completed": return "bg-purple-100 text-purple-800 hover:bg-purple-100 border-purple-200";
-          case "analyzed": return "bg-green-100 text-green-800 hover:bg-green-100 border-green-200";
-          default: return "";
+          case "pending": return { class: "bg-amber-50 text-amber-700", icon: Clock, label: "Pending" };
+          case "in_progress": return { class: "bg-sky-50 text-sky-700", icon: Clock, label: "In Progress" };
+          case "completed": return { class: "bg-violet-50 text-violet-700", icon: CheckCircle2, label: "Completed" };
+          case "analyzed": return { class: "bg-emerald-50 text-emerald-700", icon: CheckCircle2, label: "Analyzed" };
+          default: return { class: "bg-slate-100 text-slate-700", icon: AlertCircle, label: status };
     }
   }
 
   return (
     <div className="space-y-6">
       {/* Filters Bar */}
-      <Card className="p-4 bg-muted/30 border-none shadow-none">
-        <div className="flex flex-col md:flex-row gap-4">
+      <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-4 top-3 h-5 w-5 text-slate-400" />
                 <Input 
-                    placeholder="Search candidates..." 
-                    className="pl-9 bg-white"
+                    placeholder="Search candidates by name, email, or role..." 
+                    className="pl-11 h-11 bg-white border-slate-200 focus:border-indigo-300 rounded-xl transition-all"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
             <div className="flex flex-wrap gap-3">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[140px] bg-white">
+                    <SelectTrigger className="w-[140px] h-11 bg-white border-slate-200 rounded-xl">
                         <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
                         <SelectItem value="completed">Completed</SelectItem>
                         <SelectItem value="analyzed">Analyzed</SelectItem>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
                     </SelectContent>
                 </Select>
 
                 <Select value={jobFilter} onValueChange={setJobFilter}>
-                    <SelectTrigger className="w-[160px] bg-white">
+                    <SelectTrigger className="w-[180px] h-11 bg-white border-slate-200 rounded-xl">
                         <SelectValue placeholder="Job Role" />
                     </SelectTrigger>
                     <SelectContent>
@@ -161,7 +151,7 @@ export function InterviewsList() {
                 </Select>
 
                 <Select value={sortKey} onValueChange={(val) => setSortKey(val as SortKey)}>
-                    <SelectTrigger className="w-[140px] bg-white">
+                    <SelectTrigger className="w-[150px] h-11 bg-white border-slate-200 rounded-xl">
                         <SelectValue placeholder="Sort by" />
                     </SelectTrigger>
                     <SelectContent>
@@ -171,20 +161,20 @@ export function InterviewsList() {
                     </SelectContent>
                 </Select>
             </div>
-        </div>
-      </Card>
+      </div>
 
       {filteredAndSortedInterviews.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="rounded-full bg-muted p-4 mb-4">
-                <Search className="w-8 h-8 text-muted-foreground" />
+        <div className="flex flex-col items-center justify-center py-16 text-center bg-white rounded-2xl border border-slate-200">
+            <div className="rounded-xl bg-slate-100 p-4 mb-4">
+                <User className="w-8 h-8 text-slate-400" />
             </div>
-            <h3 className="text-lg font-semibold mb-1">No candidates found</h3>
-            <p className="text-muted-foreground text-sm max-w-xs">
+            <h3 className="text-lg font-semibold text-slate-900 mb-1">No candidates found</h3>
+            <p className="text-slate-500 text-sm max-w-xs mb-6">
                 Try adjusting your search query or filters to see results.
             </p>
             <Button 
-                variant="link" 
+                variant="outline" 
+                className="rounded-xl border-slate-200"
                 onClick={() => {
                     setSearchQuery("");
                     setStatusFilter("all");
@@ -195,61 +185,83 @@ export function InterviewsList() {
             </Button>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredAndSortedInterviews.map((interview) => (
-                <Card key={interview._id} className="hover:shadow-md transition-shadow group cursor-pointer flex flex-col" onClick={() => setSelectedInterview(interview._id)}>
-                <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start gap-2">
-                        <div>
-                            <h4 className="text-sm font-medium text-muted-foreground mb-1">Applying for</h4>
-                            <CardTitle className="text-base font-semibold leading-tight line-clamp-1 group-hover:text-primary transition-colors">
-                                {interview.jobTitle}
-                            </CardTitle>
-                        </div>
-                        <Badge variant="secondary" className={getStatusClass(interview.status)}>
-                            {interview.status.replace("_", " ")}
-                        </Badge>
-                    </div>
-                </CardHeader>
-                <CardContent className="space-y-3 pb-3 flex-1">
-                    <div className="flex items-center gap-3">
-                        <div className="bg-primary/10 p-2 rounded-full">
-                            <User className="w-4 h-4 text-primary" />
-                        </div>
-                        <div className="overflow-hidden">
-                            <p className="font-medium truncate">{interview.candidateName || "Anonymous"}</p>
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <Mail className="w-3 h-3" />
-                                <span className="truncate">{interview.candidateEmail}</span>
-                            </div>
-                        </div>
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+          {/* Table Header */}
+          <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <div className="col-span-4">Candidate</div>
+            <div className="col-span-3">Role</div>
+            <div className="col-span-2">Status</div>
+            <div className="col-span-1 text-center">Score</div>
+            <div className="col-span-2 text-right">Date</div>
+          </div>
+          
+          {/* Table Body */}
+          <div className="divide-y divide-slate-100">
+            {filteredAndSortedInterviews.map((interview) => {
+                const statusConfig = getStatusConfig(interview.status);
+                const StatusIcon = statusConfig.icon;
+                
+                return (
+                  <div 
+                    key={interview._id} 
+                    className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-slate-50 cursor-pointer transition-colors group"
+                    onClick={() => setSelectedInterview(interview._id)}
+                  >
+                    {/* Candidate */}
+                    <div className="col-span-4 flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                        {interview.candidateName ? interview.candidateName.charAt(0).toUpperCase() : <User className="w-5 h-5" />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-slate-900 truncate">{interview.candidateName || "Anonymous"}</p>
+                        <p className="text-sm text-slate-500 truncate">{interview.candidateEmail}</p>
+                      </div>
                     </div>
                     
-                    <div className="flex items-center justify-between pt-2 border-t mt-auto">
-                        {interview.startedAt && (
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <Calendar className="w-3 h-3" />
-                                {new Date(interview.startedAt).toLocaleDateString()}
-                            </div>
-                        )}
-                        {interview.overallScore !== undefined && (
-                            <Badge variant={interview.overallScore >= 70 ? "default" : "secondary"} className="ml-auto">
-                                {interview.overallScore}%
-                            </Badge>
-                        )}
+                    {/* Role */}
+                    <div className="col-span-3">
+                      <span className="inline-flex px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-medium truncate max-w-full">
+                        {interview.jobTitle}
+                      </span>
+                    </div>
+                    
+                    {/* Status */}
+                    <div className="col-span-2">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${statusConfig.class}`}>
+                        <StatusIcon className="w-3.5 h-3.5" />
+                        {statusConfig.label}
+                      </span>
+                    </div>
+                    
+                    {/* Score */}
+                    <div className="col-span-1 text-center">
+                      {interview.overallScore !== undefined ? (
+                        <span className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-bold ${interview.overallScore >= 70 ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                          {interview.overallScore}%
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 text-sm">—</span>
+                      )}
+                    </div>
+                    
+                    {/* Date */}
+                    <div className="col-span-2 flex items-center justify-end gap-2">
+                      <div className="flex items-center gap-1.5 text-sm text-slate-500">
+                        <Calendar className="w-4 h-4" />
+                        {interview.startedAt ? new Date(interview.startedAt).toLocaleDateString() : "—"}
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-600 transition-colors" />
+                    </div>
+                  </div>
+                );
+            })}
           </div>
-                </CardContent>
-                <CardFooter>
-                    <Button
-                    className="w-full"
-                    variant={interview.status === "pending" ? "secondary" : "outline"}
-                    >
-                    View Submission
-                    </Button>
-                </CardFooter>
-                </Card>
-        ))}
-      </div>
+          
+          {/* Table Footer */}
+          <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 text-sm text-slate-500">
+            Showing {filteredAndSortedInterviews.length} candidate{filteredAndSortedInterviews.length !== 1 ? 's' : ''}
+          </div>
+        </div>
       )}
     </div>
   );

@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { Toaster } from "sonner";
 import { Layout } from "./components/Layout";
 import { InterviewerDashboard } from "./components/InterviewerDashboard";
+import { DashboardProvider } from "./lib/DashboardContext";
 
 export default function App() {
   const [linkId, setLinkId] = useState<string | null>(null);
@@ -46,9 +47,11 @@ function Content() {
   return (
     <>
       <Authenticated>
-        <Layout>
-            <InterviewerDashboard />
-        </Layout>
+        <DashboardProvider>
+          <Layout>
+              <InterviewerDashboard />
+          </Layout>
+        </DashboardProvider>
       </Authenticated>
 
       <Unauthenticated>
