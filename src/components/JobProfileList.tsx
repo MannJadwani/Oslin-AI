@@ -5,9 +5,10 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, Eye, Copy, Briefcase } from "lucide-react";
+import { ChevronDown, ChevronUp, Eye, Copy, Briefcase, Pencil } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { EditJobProfile } from "./EditJobProfile";
 
 interface JobProfileListProps {
   onSelectProfile: (id: Id<"jobProfiles">) => void;
@@ -17,6 +18,7 @@ export function JobProfileList({ onSelectProfile }: JobProfileListProps) {
   const profiles = useQuery(api.jobProfiles.list);
   const generatePublicLink = useMutation(api.jobProfiles.generatePublicLinkIfMissing);
   const [expandedProfile, setExpandedProfile] = useState<Id<"jobProfiles"> | null>(null);
+  const [editingProfileId, setEditingProfileId] = useState<Id<"jobProfiles"> | null>(null);
 
   const handleCopyLink = async (profile: any) => {
     try {
@@ -57,25 +59,44 @@ export function JobProfileList({ onSelectProfile }: JobProfileListProps) {
   }
 
   return (
-    <div className="grid gap-6">
-      {profiles.map((profile) => (
-        <Card key={profile._id} className="transition-all hover:shadow-md border-slate-100 rounded-2xl overflow-hidden group bg-white">
-          <CardHeader className="pb-4 pt-6 px-6 bg-white">
-            <div className="flex justify-between items-start gap-4">
-                <div className="space-y-1">
-                    <CardTitle className="text-xl font-bold text-slate-900">{profile.title}</CardTitle>
-                    <CardDescription className="line-clamp-2 text-slate-500 text-sm">{profile.description}</CardDescription>
-                </div>
-                <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100"
-                    onClick={() => setExpandedProfile(expandedProfile === profile._id ? null : profile._id)}
-                >
-                    {expandedProfile === profile._id ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                </Button>
-            </div>
-          </CardHeader>
+    <>
+      {editingProfileId && (
+        <EditJobProfile 
+          profileId={editingProfileId} 
+          isOpen={!!editingProfileId} 
+          onOpenChange={(open) => !open && setEditingProfileId(null)} 
+        />
+      )}
+      <div className="grid gap-6">
+        {profiles.map((profile) => (
+          <Card key={profile._id} className="transition-all hover:shadow-md border-slate-100 rounded-2xl overflow-hidden group bg-white">
+            <CardHeader className="pb-4 pt-6 px-6 bg-white">
+              <div className="flex justify-between items-start gap-4">
+                  <div className="space-y-1">
+                      <CardTitle className="text-xl font-bold text-slate-900">{profile.title}</CardTitle>
+                      <CardDescription className="line-clamp-2 text-slate-500 text-sm">{profile.description}</CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
+                        onClick={() => setEditingProfileId(profile._id)}
+                        title="Edit profile"
+                    >
+                        <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100"
+                        onClick={() => setExpandedProfile(expandedProfile === profile._id ? null : profile._id)}
+                    >
+                        {expandedProfile === profile._id ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                    </Button>
+                  </div>
+              </div>
+            </CardHeader>
           <CardContent className="px-6 pb-4">
              <div className="flex gap-3 flex-wrap mb-4">
                 <div className="bg-indigo-600 text-white px-3 py-1 rounded-lg text-xs font-semibold flex items-center">
@@ -151,6 +172,7 @@ export function JobProfileList({ onSelectProfile }: JobProfileListProps) {
           </CardFooter>
         </Card>
       ))}
-    </div>
+      </div>
+    </>
   );
 }
