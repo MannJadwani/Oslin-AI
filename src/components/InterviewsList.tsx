@@ -114,7 +114,7 @@ export function InterviewsList() {
   return (
     <div className="space-y-6">
       {/* Filters Bar */}
-      <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
                 <Search className="absolute left-4 top-3 h-5 w-5 text-slate-400" />
                 <Input 
@@ -161,7 +161,7 @@ export function InterviewsList() {
                     </SelectContent>
                 </Select>
             </div>
-      </div>
+        </div>
 
       {filteredAndSortedInterviews.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center bg-white rounded-2xl border border-slate-200">
@@ -215,7 +215,7 @@ export function InterviewsList() {
                       <div className="min-w-0">
                         <p className="font-semibold text-slate-900 truncate">{interview.candidateName || "Anonymous"}</p>
                         <p className="text-sm text-slate-500 truncate">{interview.candidateEmail}</p>
-                      </div>
+                        </div>
                     </div>
                     
                     {/* Role */}
@@ -223,7 +223,7 @@ export function InterviewsList() {
                       <span className="inline-flex px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-medium truncate max-w-full">
                         {interview.jobTitle}
                       </span>
-                    </div>
+                        </div>
                     
                     {/* Status */}
                     <div className="col-span-2">
@@ -231,7 +231,7 @@ export function InterviewsList() {
                         <StatusIcon className="w-3.5 h-3.5" />
                         {statusConfig.label}
                       </span>
-                    </div>
+                            </div>
                     
                     {/* Score */}
                     <div className="col-span-1 text-center">
@@ -255,13 +255,13 @@ export function InterviewsList() {
                   </div>
                 );
             })}
-          </div>
+                            </div>
           
           {/* Table Footer */}
           <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 text-sm text-slate-500">
             Showing {filteredAndSortedInterviews.length} candidate{filteredAndSortedInterviews.length !== 1 ? 's' : ''}
           </div>
-        </div>
+      </div>
       )}
     </div>
   );

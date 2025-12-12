@@ -67,15 +67,15 @@ export function JobProfileList({ onSelectProfile }: JobProfileListProps) {
           onOpenChange={(open) => !open && setEditingProfileId(null)} 
         />
       )}
-      <div className="grid gap-6">
-        {profiles.map((profile) => (
+    <div className="grid gap-6">
+      {profiles.map((profile) => (
           <Card key={profile._id} className="transition-all hover:shadow-md border-slate-100 rounded-2xl overflow-hidden group bg-white">
             <CardHeader className="pb-4 pt-6 px-6 bg-white">
               <div className="flex justify-between items-start gap-4">
                   <div className="space-y-1">
                       <CardTitle className="text-xl font-bold text-slate-900">{profile.title}</CardTitle>
                       <CardDescription className="line-clamp-2 text-slate-500 text-sm">{profile.description}</CardDescription>
-                  </div>
+                </div>
                   <div className="flex gap-2">
                     <Button 
                         variant="ghost" 
@@ -86,17 +86,17 @@ export function JobProfileList({ onSelectProfile }: JobProfileListProps) {
                     >
                         <Pencil className="w-4 h-4" />
                     </Button>
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
+                <Button 
+                    variant="ghost" 
+                    size="sm" 
                         className="rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100"
-                        onClick={() => setExpandedProfile(expandedProfile === profile._id ? null : profile._id)}
-                    >
+                onClick={() => setExpandedProfile(expandedProfile === profile._id ? null : profile._id)}
+                >
                         {expandedProfile === profile._id ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                    </Button>
+                </Button>
                   </div>
-              </div>
-            </CardHeader>
+            </div>
+          </CardHeader>
           <CardContent className="px-6 pb-4">
              <div className="flex gap-3 flex-wrap mb-4">
                 <div className="bg-indigo-600 text-white px-3 py-1 rounded-lg text-xs font-semibold flex items-center">
@@ -119,8 +119,8 @@ export function JobProfileList({ onSelectProfile }: JobProfileListProps) {
                                         {q}
                                     </li>
                                 ))}
-                            </ul>
-                      </div>
+                    </ul>
+                  </div>
                       <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
                             <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Interview Questions</h4>
                              <ul className="space-y-3">
@@ -128,9 +128,9 @@ export function JobProfileList({ onSelectProfile }: JobProfileListProps) {
                                     <li key={q.id} className="text-sm text-slate-700 flex gap-3">
                                         <span className="font-mono text-xs font-bold text-white bg-indigo-600 w-5 h-5 flex items-center justify-center rounded flex-shrink-0 mt-0.5">{i+1}</span>
                                         <span>{q.text}</span>
-                                    </li>
-                                ))}
-                            </ul>
+                        </li>
+                      ))}
+                    </ul>
                         </div>
                   </div>
                 </div>
@@ -148,31 +148,31 @@ export function JobProfileList({ onSelectProfile }: JobProfileListProps) {
                     onClick={() => onSelectProfile(profile._id)}
                     className="rounded-xl border-slate-200 text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 flex-1 sm:flex-none transition-all"
                 >
-                    <Eye className="w-4 h-4 mr-2" />
-                    View Candidates
-                </Button>
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
+                <Eye className="w-4 h-4 mr-2" />
+                View Candidates
+            </Button>
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
                              <Button 
                                 size="sm" 
                                 onClick={() => handleCopyLink(profile)}
                                 className="rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm shadow-indigo-600/20 flex-1 sm:flex-none"
                             >
-                                <Copy className="w-4 h-4 mr-2" />
-                                Copy Job Link
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Share this single link with all candidates</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
+                            <Copy className="w-4 h-4 mr-2" />
+                            Copy Job Link
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Share this single link with all candidates</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
             </div>
           </CardFooter>
         </Card>
       ))}
-      </div>
+    </div>
     </>
   );
 }

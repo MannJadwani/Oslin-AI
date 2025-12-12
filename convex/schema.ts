@@ -16,6 +16,7 @@ const applicationTables = {
     })),
     status: v.union(v.literal("active"), v.literal("archived")),
     publicLinkId: v.optional(v.string()), // For sharing public links
+    shuffleQuestions: v.optional(v.boolean()), // Shuffle questions for each new candidate
   })
     .index("by_interviewer", ["interviewerId"])
     .index("by_public_link_id", ["publicLinkId"]),
@@ -34,6 +35,7 @@ const applicationTables = {
     ),
     startedAt: v.optional(v.number()),
     completedAt: v.optional(v.number()),
+    questionOrder: v.optional(v.array(v.string())), // Shuffled order of question IDs for this interview
   })
     .index("by_link_id", ["linkId"])
     .index("by_job_profile", ["jobProfileId"])

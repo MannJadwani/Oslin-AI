@@ -67,9 +67,9 @@ export function Layout({ children }: LayoutProps) {
                 >
                 <item.icon className={`w-5 h-5 transition-colors ${currentView === item.id ? "text-indigo-200" : "text-slate-400 group-hover:text-indigo-600"}`} />
                 {item.label}
-                </Button>
+          </Button>
             ))}
-            </nav>
+        </nav>
         </div>
 
         <div className="mt-auto pt-6 border-t border-slate-100 px-2">
@@ -129,7 +129,7 @@ export function Layout({ children }: LayoutProps) {
                     >
                     <item.icon className="w-5 h-5" />
                     {item.label}
-                    </Button>
+                </Button>
                 ))}
             </nav>
             <div className="mt-auto">

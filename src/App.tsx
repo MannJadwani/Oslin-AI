@@ -48,9 +48,9 @@ function Content() {
     <>
       <Authenticated>
         <DashboardProvider>
-          <Layout>
-              <InterviewerDashboard />
-          </Layout>
+        <Layout>
+            <InterviewerDashboard />
+        </Layout>
         </DashboardProvider>
       </Authenticated>
 

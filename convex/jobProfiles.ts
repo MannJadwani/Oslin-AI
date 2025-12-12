@@ -18,6 +18,7 @@ export const create = mutation({
       timeLimit: v.optional(v.number()),
       allowRetake: v.boolean(),
     })),
+    shuffleQuestions: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -33,6 +34,7 @@ export const create = mutation({
       questions: args.questions,
       status: "active",
       publicLinkId: generatePublicLinkId(),
+      shuffleQuestions: args.shuffleQuestions ?? false,
     });
 
     return jobProfileId;
@@ -129,6 +131,7 @@ export const update = mutation({
       timeLimit: v.optional(v.number()),
       allowRetake: v.boolean(),
     })),
+    shuffleQuestions: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -146,6 +149,7 @@ export const update = mutation({
       description: args.description,
       qualifications: args.qualifications,
       questions: args.questions,
+      shuffleQuestions: args.shuffleQuestions ?? false,
     });
   },
 });

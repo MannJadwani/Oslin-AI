@@ -95,7 +95,7 @@ export function InterviewerDashboard() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <CreateJobProfile />
+          <CreateJobProfile />
                 </CardContent>
              </Card>
           </div>
@@ -103,13 +103,13 @@ export function InterviewerDashboard() {
           <div className="space-y-4">
             <h2 className="text-xl font-semibold tracking-tight text-slate-900">Active Profiles</h2>
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                 <JobProfileList onSelectProfile={handleSelectProfile} />
+            <JobProfileList onSelectProfile={handleSelectProfile} />
             </div>
           </div>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-            <InterviewsList />
+        <InterviewsList />
         </div>
       )}
     </div>

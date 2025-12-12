@@ -81,7 +81,7 @@ export function InterviewDetail({ interviewId }: InterviewDetailProps) {
               <div className="w-16 h-16 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-bold text-2xl shadow-lg shadow-indigo-600/20 flex-shrink-0">
                 {interview.candidateName ? interview.candidateName.charAt(0).toUpperCase() : <User className="w-8 h-8" />}
               </div>
-              <div>
+          <div>
                 <h1 className="text-2xl font-bold text-slate-900 mb-1">{interview.candidateName || "Anonymous"}</h1>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-500">
                   <span className="flex items-center gap-1.5">
@@ -101,44 +101,44 @@ export function InterviewDetail({ interviewId }: InterviewDetailProps) {
               <div className={`px-4 py-2 rounded-full text-sm font-semibold border ${statusConfig.class}`}>
                 {statusConfig.label}
               </div>
-              {interview.status === "in_progress" && (
+                    {interview.status === "in_progress" && (
                 <Button size="sm" variant="destructive" onClick={handleEndInterview} className="rounded-full h-10 px-5">
-                  <Flag className="w-4 h-4 mr-2" /> End Interview
-                </Button>
-              )}
-              {(interview.status === "completed" || interview.status === "analyzed") && (
+                            <Flag className="w-4 h-4 mr-2" /> End Interview
+                        </Button>
+                    )}
+                    {(interview.status === "completed" || interview.status === "analyzed") && (
                 <Button size="sm" variant="outline" onClick={handleRetryAnalysis} className="rounded-full h-10 px-5 border-slate-200 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all">
-                  <RefreshCw className="w-4 h-4 mr-2" /> Retry Analysis
-                </Button>
-              )}
+                            <RefreshCw className="w-4 h-4 mr-2" /> Retry Analysis
+                        </Button>
+                    )}
+                </div>
             </div>
-          </div>
         </CardHeader>
 
         {/* Meta Info */}
         <CardContent className="p-6 md:px-8 bg-slate-50/50 border-t border-slate-100">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3">
               <div className="bg-white p-2.5 rounded-xl border border-slate-100 shadow-sm">
                 <Calendar className="w-5 h-5 text-slate-500" />
-              </div>
-              <div>
+          </div>
+          <div>
                 <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Submitted</p>
                 <p className="font-semibold text-slate-900">
                   {interview.completedAt ? new Date(interview.completedAt).toLocaleDateString() : "Pending"}
                 </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
+                    </div>
+                </div>
+                <div className="flex items-center gap-3">
               <div className="bg-white p-2.5 rounded-xl border border-slate-100 shadow-sm">
                 <Clock className="w-5 h-5 text-slate-500" />
-              </div>
-              <div>
+          </div>
+          <div>
                 <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Questions</p>
                 <p className="font-semibold text-slate-900">{jobProfile?.questions.length || 0} Total</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
+                    </div>
+                </div>
+                <div className="flex items-center gap-3">
               <div className="bg-white p-2.5 rounded-xl border border-slate-100 shadow-sm">
                 <PlayCircle className="w-5 h-5 text-slate-500" />
               </div>
@@ -151,14 +151,14 @@ export function InterviewDetail({ interviewId }: InterviewDetailProps) {
               <div className="flex items-center gap-3">
                 <div className={`p-2.5 rounded-xl border shadow-sm ${analysis.overallScore >= 70 ? "bg-emerald-500 border-emerald-500" : "bg-amber-500 border-amber-500"}`}>
                   <Sparkles className="w-5 h-5 text-white" />
-                </div>
-                <div>
+          </div>
+          <div>
                   <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">AI Score</p>
                   <p className={`font-bold text-lg ${analysis.overallScore >= 70 ? "text-emerald-600" : "text-amber-600"}`}>{analysis.overallScore}/100</p>
-                </div>
-              </div>
-            )}
           </div>
+        </div>
+            )}
+      </div>
         </CardContent>
       </Card>
 
@@ -184,66 +184,66 @@ export function InterviewDetail({ interviewId }: InterviewDetailProps) {
             <div className="grid md:grid-cols-2 gap-8">
               {/* Strengths & Weaknesses */}
               <div className="space-y-6">
-                <div>
+            <div>
                   <h4 className="flex items-center gap-2 font-bold text-emerald-700 mb-3">
                     <CheckCircle2 className="w-5 h-5" /> Strengths
-                  </h4>
-                  <ul className="space-y-2">
-                    {analysis.strengths.map((strength, idx) => (
+                        </h4>
+                        <ul className="space-y-2">
+                {analysis.strengths.map((strength, idx) => (
                       <li key={idx} className="text-sm bg-emerald-50 text-emerald-800 px-4 py-3 rounded-xl border border-emerald-100">
-                        {strength}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
+                                    {strength}
+                                </li>
+                ))}
+              </ul>
+            </div>
+            <div>
                   <h4 className="flex items-center gap-2 font-bold text-amber-700 mb-3">
                     <AlertTriangle className="w-5 h-5" /> Areas for Improvement
-                  </h4>
-                  <ul className="space-y-2">
-                    {analysis.weaknesses.map((weakness, idx) => (
+                        </h4>
+                         <ul className="space-y-2">
+                {analysis.weaknesses.map((weakness, idx) => (
                       <li key={idx} className="text-sm bg-amber-50 text-amber-800 px-4 py-3 rounded-xl border border-amber-100">
-                        {weakness}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
+                                    {weakness}
+                                </li>
+                ))}
+              </ul>
+            </div>
+            </div>
 
               {/* Insights */}
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                     <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                     <h5 className="text-xs font-semibold uppercase text-slate-400 mb-1">Communication</h5>
                     <p className="font-semibold text-slate-900">{analysis.communicationStyle}</p>
-                  </div>
+                        </div>
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                     <h5 className="text-xs font-semibold uppercase text-slate-400 mb-1">Confidence</h5>
                     <p className="font-semibold text-slate-900">{analysis.confidenceLevel}</p>
-                  </div>
-                </div>
+                        </div>
+            </div>
 
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                   <h5 className="text-xs font-semibold uppercase text-slate-400 mb-1">Skill Alignment</h5>
                   <p className="font-semibold text-slate-900">{analysis.skillAlignment}</p>
-                </div>
+            </div>
 
-                {analysis.redFlags.length > 0 && (
+            {analysis.redFlags.length > 0 && (
                   <div className="p-4 bg-red-50 rounded-2xl border border-red-100">
                     <h4 className="flex items-center gap-2 font-bold text-red-700 mb-3">
                       <XCircle className="w-5 h-5" /> Red Flags
-                    </h4>
+                            </h4>
                     <ul className="space-y-2">
-                      {analysis.redFlags.map((flag, idx) => (
+                  {analysis.redFlags.map((flag, idx) => (
                         <li key={idx} className="text-sm text-red-700">
                           • {flag}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                                    </li>
+                  ))}
+                </ul>
               </div>
-            </div>
+            )}
+          </div>
+        </div>
           </CardContent>
         </Card>
       )}
@@ -279,42 +279,42 @@ export function InterviewDetail({ interviewId }: InterviewDetailProps) {
                       <p className="text-sm text-slate-600">
                         <span className="font-semibold text-indigo-700">AI Feedback:</span> {questionAnalysis.feedback}
                       </p>
-                    </div>
-                  )}
+                  </div>
+                )}
 
-                  {response ? (
-                    <div className="grid md:grid-cols-2 gap-6">
+                {response ? (
+                        <div className="grid md:grid-cols-2 gap-6">
                       <div className="space-y-3">
                         <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
-                          <PlayCircle className="w-4 h-4" /> Video Response
-                        </div>
-                        {response.videoUrl && (
-                          <video
-                            src={response.videoUrl}
-                            controls
+                                    <PlayCircle className="w-4 h-4" /> Video Response
+                                </div>
+                    {response.videoUrl && (
+                      <video
+                        src={response.videoUrl}
+                        controls
                             className="w-full rounded-xl bg-slate-900 aspect-video shadow-md"
-                          />
-                        )}
+                                    />
+                    )}
                         <p className="text-xs text-slate-400 text-right">
-                          Duration: {Math.floor(response.duration)}s
-                        </p>
-                      </div>
-                      
+                      Duration: {Math.floor(response.duration)}s
+                    </p>
+                            </div>
+                            
                       <div className="space-y-3">
                         <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
-                          <FileText className="w-4 h-4" /> Transcript
-                        </div>
+                                    <FileText className="w-4 h-4" /> Transcript
+                                </div>
                         <div className="p-4 bg-slate-50 rounded-xl text-sm leading-relaxed max-h-[250px] overflow-y-auto border border-slate-100 text-slate-700">
                           {response.transcript || <span className="text-slate-400 italic">No transcript available.</span>}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
+                                </div>
+                            </div>
+                  </div>
+                ) : (
                     <div className="text-center py-10 text-slate-400 bg-slate-50/50 rounded-xl border-dashed border border-slate-200">
                       <PlayCircle className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                      No response recorded for this question.
-                    </div>
-                  )}
+                            No response recorded for this question.
+                        </div>
+                )}
                 </CardContent>
               </Card>
             );
@@ -328,7 +328,7 @@ export function InterviewDetail({ interviewId }: InterviewDetailProps) {
           <CardContent className="flex items-center justify-center p-8 text-indigo-700 gap-3">
             <div className="animate-spin rounded-full h-5 w-5 border-2 border-indigo-600 border-t-transparent"></div>
             <span className="font-medium">AI analysis is in progress...</span>
-          </CardContent>
+            </CardContent>
         </Card>
       )}
     </div>

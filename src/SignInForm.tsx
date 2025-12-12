@@ -20,63 +20,63 @@ export function SignInForm() {
         </div>
         <div className="text-center space-y-1">
             <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-                {flow === "signIn" ? "Welcome back" : "Create an account"}
-            </h2>
+            {flow === "signIn" ? "Welcome back" : "Create an account"}
+        </h2>
             <p className="text-sm text-slate-500">
-                {flow === "signIn"
+            {flow === "signIn"
                 ? "Enter your details to access your workspace"
                 : "Get started with your 14-day free trial"}
-            </p>
+        </p>
         </div>
       </div>
 
       <div>
-        <form
+      <form
             className="flex flex-col gap-4"
-            onSubmit={(e) => {
-            e.preventDefault();
-            setSubmitting(true);
-            const formData = new FormData(e.target as HTMLFormElement);
-            formData.set("flow", flow);
-            void signIn("password", formData).catch((error) => {
-                let toastTitle = "";
-                if (error.message.includes("Invalid password")) {
-                toastTitle = "Invalid password. Please try again.";
-                } else {
-                toastTitle =
-                    flow === "signIn"
-                    ? "Could not sign in, did you mean to sign up?"
-                    : "Could not sign up, did you mean to sign in?";
-                }
-                toast.error(toastTitle);
-                setSubmitting(false);
-            });
-            }}
-        >
+        onSubmit={(e) => {
+          e.preventDefault();
+          setSubmitting(true);
+          const formData = new FormData(e.target as HTMLFormElement);
+          formData.set("flow", flow);
+          void signIn("password", formData).catch((error) => {
+            let toastTitle = "";
+            if (error.message.includes("Invalid password")) {
+              toastTitle = "Invalid password. Please try again.";
+            } else {
+              toastTitle =
+                flow === "signIn"
+                  ? "Could not sign in, did you mean to sign up?"
+                  : "Could not sign up, did you mean to sign in?";
+            }
+            toast.error(toastTitle);
+            setSubmitting(false);
+          });
+        }}
+      >
             <div className="space-y-4">
                 <div className="relative">
                     <div className="absolute left-3 top-3 text-slate-400">
                         <User className="w-5 h-5" />
                     </div>
-                    <Input
-                        name="email"
-                        placeholder="Email address"
-                        type="email"
-                        required
-                        autoComplete="email"
+            <Input
+            name="email"
+            placeholder="Email address"
+          type="email"
+          required
+            autoComplete="email"
                         className="pl-10 h-12 rounded-full bg-slate-50 border-slate-200 focus:bg-white transition-all duration-200"
-                    />
+        />
                 </div>
                 <div className="relative">
                      <div className="absolute left-3 top-3 text-slate-400">
                         <Lock className="w-5 h-5" />
                     </div>
-                    <Input
-                        name="password"
-                        placeholder="Password"
-                        type="password"
-                        required
-                        autoComplete={flow === "signIn" ? "current-password" : "new-password"}
+            <Input
+          name="password"
+          placeholder="Password"
+            type="password"
+          required
+            autoComplete={flow === "signIn" ? "current-password" : "new-password"}
                          className="pl-10 h-12 rounded-full bg-slate-50 border-slate-200 focus:bg-white transition-all duration-200"
                     />
                 </div>
