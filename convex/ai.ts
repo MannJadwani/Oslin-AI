@@ -79,7 +79,28 @@ export const analyzeInterview = internalAction({
         }
 
         console.log(`Transcribing response for question: ${response.questionId}`);
-        const videoFile = await ctx.storage.get(response.videoStorageId);
+        
+        let videoFile: Blob | null = null;
+        
+        // Handle chunked videos (new)
+        if (response.videoChunkIds && response.videoChunkIds.length > 0) {
+          console.log(`Combining ${response.videoChunkIds.length} chunks for question ${response.questionId}`);
+          const chunks: Blob[] = [];
+          for (const chunkId of response.videoChunkIds) {
+            const chunk = await ctx.storage.get(chunkId);
+            if (chunk) {
+              chunks.push(chunk);
+            }
+          }
+          if (chunks.length > 0) {
+            videoFile = new Blob(chunks, { type: "video/webm" });
+          }
+        } 
+        // Handle single file (legacy)
+        else if (response.videoStorageId) {
+          videoFile = await ctx.storage.get(response.videoStorageId);
+        }
+        
         if (!videoFile) {
           console.log(`No video file found for response: ${response._id}`);
           continue;

@@ -3,6 +3,17 @@ import { v } from "convex/values";
 import { authTables } from "@convex-dev/auth/server";
 
 const applicationTables = {
+  // Global intro questions that start every interview (per user)
+  introQuestions: defineTable({
+    userId: v.id("users"),
+    questions: v.array(v.object({
+      id: v.string(),
+      text: v.string(),
+      timeLimit: v.optional(v.number()), // in seconds, optional
+      allowRetake: v.boolean(),
+    })),
+  }).index("by_user", ["userId"]),
+
   jobProfiles: defineTable({
     interviewerId: v.id("users"),
     title: v.string(),
@@ -44,11 +55,24 @@ const applicationTables = {
   responses: defineTable({
     interviewId: v.id("interviews"),
     questionId: v.string(),
-    videoStorageId: v.id("_storage"),
+    // Support both single file (legacy) and chunked storage
+    videoStorageId: v.optional(v.id("_storage")), // Single file (legacy)
+    videoChunkIds: v.optional(v.array(v.id("_storage"))), // Chunked storage (new)
     transcript: v.optional(v.string()),
     duration: v.number(), // in seconds
     attemptNumber: v.number(),
   }).index("by_interview", ["interviewId"]),
+
+  // Temporary chunk storage during recording
+  videoChunks: defineTable({
+    interviewId: v.id("interviews"),
+    questionId: v.string(),
+    chunkIndex: v.number(),
+    storageId: v.id("_storage"),
+    uploadedAt: v.number(),
+  })
+    .index("by_interview_question", ["interviewId", "questionId"])
+    .index("by_interview_question_index", ["interviewId", "questionId", "chunkIndex"]),
 
   analyses: defineTable({
     interviewId: v.id("interviews"),

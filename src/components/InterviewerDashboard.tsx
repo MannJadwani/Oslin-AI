@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { CreateJobProfile } from "./CreateJobProfile";
 import { JobProfileList } from "./JobProfileList";
 import { InterviewsList } from "./InterviewsList";
+import { IntroQuestionsManager } from "./IntroQuestionsManager";
 import { Id } from "../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle, List, FileText, Users, Settings as SettingsIcon } from "lucide-react";
+import { PlusCircle, FileText, Users } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useDashboard } from "../lib/DashboardContext";
 
@@ -26,18 +27,12 @@ export function InterviewerDashboard() {
   if (currentView === "settings") {
       return (
           <div className="space-y-8">
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900">Settings</h1>
-              <Card className="bg-white border-slate-100 shadow-sm rounded-2xl p-8">
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <div className="w-16 h-16 bg-indigo-100 rounded-xl flex items-center justify-center mb-4">
-                          <SettingsIcon className="w-8 h-8 text-indigo-600" />
-                      </div>
-                      <h3 className="text-lg font-semibold text-slate-900">Settings coming soon</h3>
-                      <p className="text-slate-500 max-w-md mt-2">
-                          We're working on advanced configuration options for your team.
-                      </p>
-                  </div>
-              </Card>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight text-slate-900">Settings</h1>
+                <p className="text-slate-500">Configure your interview settings and global questions.</p>
+              </div>
+              <Separator className="bg-slate-200" />
+              <IntroQuestionsManager />
           </div>
       )
   }

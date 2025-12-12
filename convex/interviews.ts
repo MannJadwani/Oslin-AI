@@ -72,17 +72,28 @@ export const getByLink = query({
         return null;
       }
       
-      // Reorder questions if questionOrder exists
-      const reorderedQuestions = interview.questionOrder 
+      // Get intro questions for this interviewer
+      const introQuestionsDoc = await ctx.db
+        .query("introQuestions")
+        .withIndex("by_user", (q) => q.eq("userId", jobProfile.interviewerId))
+        .first();
+      const introQuestions = introQuestionsDoc?.questions ?? [];
+      
+      // Reorder job-specific questions if questionOrder exists
+      const reorderedJobQuestions = interview.questionOrder 
         ? reorderQuestions(jobProfile.questions, interview.questionOrder)
         : jobProfile.questions;
+      
+      // Combine: intro questions first (never shuffled), then job questions
+      const allQuestions = [...introQuestions, ...reorderedJobQuestions];
       
       return {
         interview,
         jobProfile: {
           ...jobProfile,
-          questions: reorderedQuestions,
+          questions: allQuestions,
         },
+        introQuestionCount: introQuestions.length,
         type: "invite" as const
       };
     }
@@ -94,9 +105,23 @@ export const getByLink = query({
       .first();
 
     if (jobProfile && jobProfile.status === "active") {
+        // Get intro questions for this interviewer
+        const introQuestionsDoc = await ctx.db
+          .query("introQuestions")
+          .withIndex("by_user", (q) => q.eq("userId", jobProfile.interviewerId))
+          .first();
+        const introQuestions = introQuestionsDoc?.questions ?? [];
+        
+        // Combine: intro questions first, then job questions
+        const allQuestions = [...introQuestions, ...jobProfile.questions];
+        
         return {
             interview: null,
-            jobProfile,
+            jobProfile: {
+              ...jobProfile,
+              questions: allQuestions,
+            },
+            introQuestionCount: introQuestions.length,
             type: "public" as const
         };
     }
@@ -277,21 +302,52 @@ export const get = query({
       return null;
     }
     
-    // Reorder questions if questionOrder exists
-    const reorderedQuestions = interview.questionOrder 
+    // Get intro questions for this interviewer
+    const introQuestionsDoc = await ctx.db
+      .query("introQuestions")
+      .withIndex("by_user", (q) => q.eq("userId", jobProfile.interviewerId))
+      .first();
+    const introQuestions = introQuestionsDoc?.questions ?? [];
+    
+    // Reorder job-specific questions if questionOrder exists
+    const reorderedJobQuestions = interview.questionOrder 
       ? reorderQuestions(jobProfile.questions, interview.questionOrder)
       : jobProfile.questions;
+    
+    // Combine: intro questions first (never shuffled), then job questions
+    const allQuestions = [...introQuestions, ...reorderedJobQuestions];
     
     const responses = await ctx.db
       .query("responses")
       .withIndex("by_interview", (q) => q.eq("interviewId", args.id))
       .collect();
 
+    // Handle both single file (legacy) and chunked video storage
     const responsesWithUrls = await Promise.all(
-      responses.map(async (response) => ({
-        ...response,
-        videoUrl: await ctx.storage.getUrl(response.videoStorageId),
-      }))
+      responses.map(async (response) => {
+        // Chunked video (new)
+        if (response.videoChunkIds && response.videoChunkIds.length > 0) {
+          const chunkUrls: Array<string | null> = [];
+          for (const chunkId of response.videoChunkIds) {
+            const url = await ctx.storage.getUrl(chunkId);
+            chunkUrls.push(url);
+          }
+          return {
+            ...response,
+            videoUrl: null, // No single URL
+            videoChunkUrls: chunkUrls.filter((url): url is string => url !== null),
+            isChunked: true,
+          };
+        }
+        
+        // Single file (legacy)
+        return {
+          ...response,
+          videoUrl: response.videoStorageId ? await ctx.storage.getUrl(response.videoStorageId) : null,
+          videoChunkUrls: [] as string[],
+          isChunked: false,
+        };
+      })
     );
 
     const analysis = await ctx.db
@@ -303,8 +359,9 @@ export const get = query({
       interview,
       jobProfile: {
         ...jobProfile,
-        questions: reorderedQuestions,
+        questions: allQuestions,
       },
+      introQuestionCount: introQuestions.length,
       responses: responsesWithUrls,
       analysis,
     };

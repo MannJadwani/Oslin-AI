@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
@@ -41,7 +41,7 @@ interface SortableQuestionProps {
   canDelete: boolean;
 }
 
-function SortableQuestion({ question, index, onUpdate, onUpdateTimeLimit, onUpdateAllowRetake, onDelete, canDelete }: SortableQuestionProps) {
+function SortableQuestion({ question, index, displayNumber, onUpdate, onUpdateTimeLimit, onUpdateAllowRetake, onDelete, canDelete }: SortableQuestionProps & { displayNumber: number }) {
   const {
     attributes,
     listeners,
@@ -68,7 +68,7 @@ function SortableQuestion({ question, index, onUpdate, onUpdateTimeLimit, onUpda
         >
           <GripVertical className="w-5 h-5" />
         </button>
-        <span className="text-xs font-bold text-white bg-indigo-600 w-6 h-6 flex items-center justify-center rounded-lg flex-shrink-0 mt-2">Q{index + 1}</span>
+        <span className="text-xs font-bold text-white bg-indigo-600 w-6 h-6 flex items-center justify-center rounded-lg flex-shrink-0 mt-2">Q{displayNumber}</span>
         <div className="flex-1">
           <Input
             value={question.text}
@@ -136,7 +136,6 @@ export function EditJobProfile({ profileId, isOpen, onOpenChange }: EditJobProfi
     allowRetake: boolean;
   }>>([{ id: crypto.randomUUID(), text: "", timeLimit: undefined, allowRetake: true }]);
   const [shuffleQuestions, setShuffleQuestions] = useState(false);
-  const newQuestionRef = useRef<HTMLDivElement>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -151,7 +150,11 @@ export function EditJobProfile({ profileId, isOpen, onOpenChange }: EditJobProfi
       setTitle(profile.title);
       setDescription(profile.description);
       setQualifications(profile.qualifications.length > 0 ? profile.qualifications : [""]);
-      setQuestions(profile.questions.length > 0 ? profile.questions : [{ id: crypto.randomUUID(), text: "", timeLimit: undefined, allowRetake: true }]);
+      // Reverse questions for editing display (newest at top, Q1 at bottom)
+      const questionsForDisplay = profile.questions.length > 0 
+        ? [...profile.questions].reverse() 
+        : [{ id: crypto.randomUUID(), text: "", timeLimit: undefined, allowRetake: true }];
+      setQuestions(questionsForDisplay);
       setShuffleQuestions(profile.shuffleQuestions ?? false);
     }
   }, [profile, isOpen]);
@@ -174,12 +177,15 @@ export function EditJobProfile({ profileId, isOpen, onOpenChange }: EditJobProfi
     }
 
     try {
+      // Reverse questions so first entered becomes Q1 in the interview
+      const questionsInOrder = [...validQuestions].reverse();
+      
       await updateProfile({
         id: profileId,
         title,
         description,
         qualifications: validQualifications,
-        questions: validQuestions,
+        questions: questionsInOrder,
         shuffleQuestions,
       });
       
@@ -203,11 +209,8 @@ export function EditJobProfile({ profileId, isOpen, onOpenChange }: EditJobProfi
 
   const addQuestion = () => {
     const newQuestion = { id: crypto.randomUUID(), text: "", timeLimit: undefined, allowRetake: true };
+    // Prepend to show at TOP for easy editing
     setQuestions([newQuestion, ...questions]);
-    // Scroll to top after a brief delay to allow DOM update
-    setTimeout(() => {
-      newQuestionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
   };
 
   const updateQuestion = (index: number, updates: Partial<typeof questions[0]>) => {
@@ -315,6 +318,10 @@ export function EditJobProfile({ profileId, isOpen, onOpenChange }: EditJobProfi
                    </label>
                  </div>
 
+                 <p className="text-xs text-slate-500 italic mb-2">
+                   New questions appear at the top for easy editing. Q1 is the first question in the interview.
+                 </p>
+                 
                  <DndContext
                    sensors={sensors}
                    collisionDetection={closestCenter}
@@ -323,10 +330,11 @@ export function EditJobProfile({ profileId, isOpen, onOpenChange }: EditJobProfi
                    <SortableContext items={questions.map(q => q.id)} strategy={verticalListSortingStrategy}>
                      <div className="space-y-4">
                        {questions.map((question, idx) => (
-                         <div key={question.id} ref={idx === 0 ? newQuestionRef : undefined}>
+                         <div key={question.id}>
                            <SortableQuestion
                              question={question}
                              index={idx}
+                             displayNumber={questions.length - idx}
                              onUpdate={(text) => updateQuestion(idx, { text })}
                              onUpdateTimeLimit={(timeLimit) => updateQuestion(idx, { timeLimit })}
                              onUpdateAllowRetake={(allowRetake) => updateQuestion(idx, { allowRetake })}

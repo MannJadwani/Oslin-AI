@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CheckCircle2, AlertTriangle, XCircle, User, Mail, Calendar, PlayCircle, FileText, Flag, RefreshCw, Briefcase, Clock, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { ChunkedVideoPlayer } from "./ChunkedVideoPlayer";
 
 interface InterviewDetailProps {
   interviewId: Id<"interviews">;
@@ -288,13 +289,11 @@ export function InterviewDetail({ interviewId }: InterviewDetailProps) {
                         <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
                                     <PlayCircle className="w-4 h-4" /> Video Response
                                 </div>
-                    {response.videoUrl && (
-                      <video
-                        src={response.videoUrl}
-                        controls
-                            className="w-full rounded-xl bg-slate-900 aspect-video shadow-md"
-                                    />
-                    )}
+                    <ChunkedVideoPlayer
+                      videoUrl={response.videoUrl}
+                      videoChunkUrls={response.videoChunkUrls}
+                      isChunked={response.isChunked}
+                    />
                         <p className="text-xs text-slate-400 text-right">
                       Duration: {Math.floor(response.duration)}s
                     </p>

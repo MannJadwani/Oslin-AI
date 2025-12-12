@@ -22,7 +22,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-background font-sans text-foreground">
       {linkId ? (
-        <div className="p-8 max-w-7xl mx-auto">
+        <div className="w-full">
             <CandidateInterview linkId={linkId} />
         </div>
       ) : (

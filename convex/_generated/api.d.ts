@@ -17,6 +17,7 @@ import type * as ai from "../ai.js";
 import type * as auth from "../auth.js";
 import type * as http from "../http.js";
 import type * as interviews from "../interviews.js";
+import type * as introQuestions from "../introQuestions.js";
 import type * as jobProfiles from "../jobProfiles.js";
 import type * as responses from "../responses.js";
 import type * as router from "../router.js";
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   http: typeof http;
   interviews: typeof interviews;
+  introQuestions: typeof introQuestions;
   jobProfiles: typeof jobProfiles;
   responses: typeof responses;
   router: typeof router;

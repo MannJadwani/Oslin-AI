@@ -1,14 +1,13 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { Id } from "../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Video, Mic, CheckCircle, Clock, AlertCircle } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
+import { Zap, Mic, CheckCircle, Clock, AlertCircle, SkipForward, Loader2, User, Mail, Briefcase, Shield, ArrowRight } from "lucide-react";
 
 interface CandidateInterviewProps {
   linkId: string;
@@ -30,6 +29,10 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
   const [interviewId, setInterviewId] = useState<Id<"interviews"> | null>(null);
   const [hasPermissions, setHasPermissions] = useState(false);
   const [intermissionTime, setIntermissionTime] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadQueue, setUploadQueue] = useState<number>(0);
+  const [isStarting, setIsStarting] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
   const isStoppingRef = useRef(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -78,8 +81,17 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
   const requestPermissions = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
+        video: {
+          width: { ideal: 640, max: 640 },
+          height: { ideal: 480, max: 480 },
+          frameRate: { ideal: 24, max: 24 },
+          facingMode: "user",
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 44100,
+        },
       });
       streamRef.current = stream;
       if (videoRef.current) {
@@ -92,11 +104,14 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
     }
   };
 
-  const handleStart = async () => {
+  const handleStart = useCallback(async () => {
     if (!candidateName || !candidateEmail) {
       toast.error("Please enter your name and email");
       return;
     }
+
+    if (isStarting) return; // Prevent double-clicks
+    setIsStarting(true);
 
     try {
       const id = await startInterview({
@@ -114,12 +129,13 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
       } else {
       toast.error("Failed to start interview");
       }
+    } finally {
+      setIsStarting(false);
     }
-  };
+  }, [candidateName, candidateEmail, isStarting, linkId, startInterview]);
 
   const startRecording = () => {
     if (!streamRef.current) {
-      // Retry getting stream if lost (e.g. weird state transition)
       if (step === "recording") {
           requestPermissions().then(() => {
               if (streamRef.current) startRecording();
@@ -129,8 +145,16 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
     }
 
     chunksRef.current = [];
+    
+    // Check for VP9 support (better compression), fall back to VP8
+    const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
+      ? "video/webm;codecs=vp9,opus"
+      : "video/webm;codecs=vp8,opus";
+
     const mediaRecorder = new MediaRecorder(streamRef.current, {
-      mimeType: "video/webm;codecs=vp8,opus",
+      mimeType,
+      videoBitsPerSecond: 500000,  // 500 kbps for smaller files
+      audioBitsPerSecond: 64000,   // 64 kbps for voice
     });
 
     mediaRecorder.ondataavailable = (event) => {
@@ -139,86 +163,17 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
       }
     };
 
-    mediaRecorder.start();
+    // Collect data in 1-second chunks for faster blob creation
+    mediaRecorder.start(1000);
     mediaRecorderRef.current = mediaRecorder;
     setIsRecording(true);
     setRecordingTime(0);
 
-    // Clear any existing timer
     if (timerRef.current) clearInterval(timerRef.current);
 
     timerRef.current = setInterval(() => {
       setRecordingTime(prev => prev + 1);
     }, 1000);
-  };
-
-  const handleTimeUp = () => {
-      // Prevent multiple calls
-      if (isStoppingRef.current) return;
-      isStoppingRef.current = true;
-      
-      if (timerRef.current) clearInterval(timerRef.current);
-      stopRecordingAndAdvance();
-  }
-
-  const stopRecordingAndAdvance = async () => {
-    if (!mediaRecorderRef.current || !interviewId) return;
-
-    // 1. Stop recording
-    const mediaRecorder = mediaRecorderRef.current;
-    mediaRecorderRef.current = null;
-    setIsRecording(false);
-    
-    // Capture current state before async operations
-    const questionIndex = currentQuestionIndex;
-    const isLastQuestion = data?.jobProfile && questionIndex >= data.jobProfile.questions.length - 1;
-    const currentQuestion = data?.jobProfile?.questions[questionIndex];
-    const duration = recordingTime;
-    
-    // 2. Immediately transition UI - don't wait for upload
-    if (isLastQuestion) {
-        setStep("uploading");
-    } else {
-        startIntermission();
-    }
-    
-    // 3. Stop media recorder and handle upload in background
-    return new Promise<void>((resolve) => {
-      mediaRecorder.onstop = async () => {
-        const blob = new Blob(chunksRef.current, { type: "video/webm" });
-        
-            if (currentQuestion && interviewId) {
-        try {
-          const uploadUrl = await generateUploadUrl();
-          const uploadResult = await fetch(uploadUrl, {
-            method: "POST",
-            headers: { "Content-Type": blob.type },
-            body: blob,
-          });
-          const { storageId } = await uploadResult.json();
-          await saveResponse({
-            interviewId,
-            questionId: currentQuestion.id,
-            videoStorageId: storageId,
-                        duration,
-                        attemptNumber: 1,
-          });
-        } catch (error) {
-                    console.error("Failed to save response", error);
-                }
-            }
-            
-            // If this was the last question, now finalize
-            if (isLastQuestion) {
-                await handleComplete();
-            }
-            
-            // Reset stopping flag for next question
-            isStoppingRef.current = false;
-          resolve();
-      };
-      mediaRecorder.stop();
-    });
   };
 
   const startIntermission = () => {
@@ -256,6 +211,125 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
     setStep("complete");
   };
 
+  // Define stopRecordingAndAdvance BEFORE the functions that depend on it
+  const stopRecordingAndAdvance = useCallback(async () => {
+    if (!mediaRecorderRef.current || !interviewId) {
+      isStoppingRef.current = false;
+      setIsStopping(false);
+      return;
+    }
+
+    const mediaRecorder = mediaRecorderRef.current;
+    mediaRecorderRef.current = null;
+    setIsRecording(false);
+    
+    const questionIndex = currentQuestionIndex;
+    const isLastQuestion = data?.jobProfile && questionIndex >= data.jobProfile.questions.length - 1;
+    const currentQuestion = data?.jobProfile?.questions[questionIndex];
+    const duration = recordingTime;
+    
+    // Immediately transition UI
+    if (isLastQuestion) {
+        setStep("uploading");
+    } else {
+        startIntermission();
+    }
+    
+    setUploadQueue(prev => prev + 1);
+    setIsUploading(true);
+    
+    mediaRecorder.onstop = async () => {
+      // Use requestAnimationFrame to let UI update first
+      requestAnimationFrame(async () => {
+        const chunks = chunksRef.current;
+        chunksRef.current = [];
+        
+        const blob = new Blob(chunks, { type: "video/webm" });
+        
+        if (currentQuestion && interviewId) {
+          let retries = 3;
+          let success = false;
+          
+          while (retries > 0 && !success) {
+            try {
+              const uploadUrl = await generateUploadUrl();
+              const uploadResult = await fetch(uploadUrl, {
+                method: "POST",
+                headers: { "Content-Type": blob.type },
+                body: blob,
+              });
+              
+              if (!uploadResult.ok) {
+                throw new Error(`Upload failed: ${uploadResult.status}`);
+              }
+              
+              const { storageId } = await uploadResult.json();
+              await saveResponse({
+                interviewId,
+                questionId: currentQuestion.id,
+                videoStorageId: storageId,
+                duration,
+                attemptNumber: 1,
+              });
+              success = true;
+            } catch (error) {
+              retries--;
+              console.error(`Upload attempt failed (${3 - retries}/3):`, error);
+              if (retries > 0) {
+                await new Promise(r => setTimeout(r, 1000));
+              }
+            }
+          }
+          
+          if (!success) {
+            toast.error("Failed to upload response. Your answer may not be saved.");
+          }
+        }
+        
+        setUploadQueue(prev => {
+          const newCount = prev - 1;
+          if (newCount === 0) setIsUploading(false);
+          return newCount;
+        });
+        
+        if (isLastQuestion) {
+          await handleComplete();
+        }
+        
+        isStoppingRef.current = false;
+        setIsStopping(false);
+      });
+    };
+    
+    mediaRecorder.stop();
+  }, [currentQuestionIndex, data?.jobProfile, interviewId, recordingTime, generateUploadUrl, saveResponse, finalizeInterview]);
+
+  const handleTimeUp = useCallback(() => {
+      // Prevent multiple calls
+      if (isStoppingRef.current) return;
+      isStoppingRef.current = true;
+      setIsStopping(true);
+      
+      if (timerRef.current) clearInterval(timerRef.current);
+      stopRecordingAndAdvance();
+  }, [stopRecordingAndAdvance]);
+
+  // Allow user to skip to next question early
+  const handleNextQuestion = useCallback(() => {
+      if (isStoppingRef.current || !isRecording || isStopping) return;
+      
+      // Require at least 5 seconds of recording before allowing skip
+      if (recordingTime < 5) {
+          toast.error("Please record for at least 5 seconds before skipping");
+          return;
+      }
+      
+      isStoppingRef.current = true;
+      setIsStopping(true);
+      if (timerRef.current) clearInterval(timerRef.current);
+      stopRecordingAndAdvance();
+  }, [isRecording, isStopping, recordingTime, stopRecordingAndAdvance]);
+
   // Monitor time limit
   useEffect(() => {
     if (!isRecording || !data?.jobProfile) return;
@@ -266,99 +340,176 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
     if (recordingTime >= limit) {
       handleTimeUp();
     }
-  }, [recordingTime, isRecording, currentQuestionIndex, data]); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recordingTime, isRecording, currentQuestionIndex, data, handleTimeUp]);
 
   if (data === undefined) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-600 mb-6">
+            <Zap className="w-8 h-8 text-white" />
+          </div>
+          <div className="flex items-center justify-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-indigo-600 animate-bounce" style={{ animationDelay: "0ms" }} />
+            <div className="w-2 h-2 rounded-full bg-indigo-600 animate-bounce" style={{ animationDelay: "150ms" }} />
+            <div className="w-2 h-2 rounded-full bg-indigo-600 animate-bounce" style={{ animationDelay: "300ms" }} />
+          </div>
+          <p className="text-slate-500 mt-4 text-sm">Loading interview...</p>
+        </div>
       </div>
     );
   }
 
   if (!data) {
     return (
-      <Card className="max-w-md mx-auto mt-20 text-center border-destructive/50">
-        <CardHeader>
-            <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-2" />
-            <CardTitle className="text-destructive">Interview Not Found</CardTitle>
-            <CardDescription>This interview link is invalid or has expired.</CardDescription>
-        </CardHeader>
-      </Card>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full rounded-3xl border-slate-200 shadow-sm">
+          <CardHeader className="text-center pt-10 pb-8">
+            <div className="mx-auto w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mb-4">
+              <AlertCircle className="w-8 h-8 text-red-500" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Interview Not Found</h2>
+            <p className="text-slate-500">This interview link is invalid or has expired. Please contact the hiring team for a new link.</p>
+          </CardHeader>
+        </Card>
+      </div>
     );
   }
 
   if (step === "intro") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center p-4">
-        <Card className="max-w-2xl w-full shadow-2xl border-white/10 bg-white/95 backdrop-blur">
-          <CardHeader className="text-center space-y-4 pb-8">
-            <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit mb-2">
-              <Video className="w-8 h-8 text-primary" />
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-2xl">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600 mb-4">
+              <Zap className="w-7 h-7 text-white" />
             </div>
-            <CardTitle className="text-3xl font-bold">
-              <span className="text-primary">Oslin</span>
-              <span className="text-muted-foreground/80"> AI</span>
-              <span className="block text-xl font-medium text-foreground mt-1">Video Interview</span>
-            </CardTitle>
-            <div className="space-y-2">
-              <h2 className="text-xl font-semibold text-foreground">{data.jobProfile?.title}</h2>
-              <p className="text-muted-foreground max-w-lg mx-auto">{data.jobProfile?.description}</p>
+            <h1 className="text-2xl font-bold text-slate-900 mb-1">
+              Oslin <span className="text-slate-400 font-normal">AI Interview</span>
+            </h1>
+          </div>
+
+          <Card className="rounded-3xl border-slate-200 shadow-sm overflow-hidden">
+            {/* Job Info Header */}
+            <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 p-6 md:p-8 text-white">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center flex-shrink-0">
+                  <Briefcase className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl md:text-2xl font-bold mb-1">{data.jobProfile?.title}</h2>
+                  <p className="text-indigo-100 text-sm md:text-base leading-relaxed">{data.jobProfile?.description}</p>
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap gap-3 mt-6">
+                <div className="flex items-center gap-2 bg-white/10 backdrop-blur rounded-full px-3 py-1.5 text-sm">
+                  <Clock className="w-4 h-4" />
+                  {data.jobProfile?.questions.length} Questions
+                </div>
+                <div className="flex items-center gap-2 bg-white/10 backdrop-blur rounded-full px-3 py-1.5 text-sm">
+                  <Shield className="w-4 h-4" />
+                  Anti-Cheating Enabled
+                </div>
+              </div>
             </div>
-            <div className="bg-amber-50 text-amber-800 p-4 rounded-lg text-sm border border-amber-200 mt-4 text-left">
-                <p className="font-semibold mb-1">⚠️ Anti-Cheating Mode Enabled</p>
-                <ul className="list-disc pl-5 space-y-1">
-                    <li>Once started, questions will flow automatically.</li>
-                    <li>You cannot stop or pause the recording manually.</li>
-                    <li>You must answer until the timer runs out.</li>
-                    <li>There are no retakes allowed.</li>
+
+            {/* Form */}
+            <CardContent className="p-6 md:p-8 space-y-6">
+              {/* Instructions */}
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                <p className="font-semibold text-amber-800 mb-2 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  Before you begin
+                </p>
+                <ul className="text-sm text-amber-700 space-y-1.5 ml-6">
+                  <li className="list-disc">Questions flow automatically once started</li>
+                  <li className="list-disc">Recording cannot be paused or stopped</li>
+                  <li className="list-disc">Answer until the timer runs out</li>
+                  <li className="list-disc">No retakes allowed</li>
                 </ul>
+              </div>
+
+              {/* Input Fields */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">Full Name</label>
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <Input
+                      value={candidateName}
+                      onChange={(e) => setCandidateName(e.target.value)}
+                      placeholder="Enter your full name"
+                      className="pl-12 h-12 rounded-xl bg-slate-50 border-slate-200 focus:bg-white"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">Email Address</label>
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <Input
+                      type="email"
+                      value={candidateEmail}
+                      onChange={(e) => setCandidateEmail(e.target.value)}
+                      placeholder="Enter your email"
+                      className="pl-12 h-12 rounded-xl bg-slate-50 border-slate-200 focus:bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+
+            <CardFooter className="p-6 md:p-8 pt-0">
+              <Button 
+                size="lg" 
+                className="w-full h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-md shadow-indigo-600/20" 
+                onClick={handleStart} 
+                disabled={isStarting}
+              >
+                {isStarting ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Starting Interview...
+                  </>
+                ) : (
+                  <>
+                    I'm Ready to Start
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
+
+          <p className="text-center text-slate-400 text-xs mt-6">
+            By starting, you agree to have your responses recorded and analyzed
+          </p>
         </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Full Name</label>
-                <Input
-              value={candidateName}
-              onChange={(e) => setCandidateName(e.target.value)}
-                  placeholder="Enter your full name"
-            />
-          </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Email Address</label>
-                <Input
-              type="email"
-              value={candidateEmail}
-              onChange={(e) => setCandidateEmail(e.target.value)}
-                  placeholder="Enter your email"
-            />
-          </div>
-        </div>
-          </CardContent>
-          <CardFooter>
-            <Button size="lg" className="w-full" onClick={handleStart}>
-              I'm Ready to Start
-            </Button>
-          </CardFooter>
-        </Card>
       </div>
     );
   }
 
   if (step === "uploading") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center p-4">
-        <Card className="max-w-lg w-full shadow-2xl border-white/10 bg-white/95 backdrop-blur text-center">
-          <CardHeader>
-            <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit mb-4">
-              <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full rounded-3xl border-slate-200 shadow-sm text-center">
+          <CardHeader className="pt-12 pb-8">
+            <div className="mx-auto w-20 h-20 rounded-2xl bg-indigo-50 flex items-center justify-center mb-6 relative">
+              <div className="absolute inset-0 rounded-2xl border-4 border-indigo-600 border-t-transparent animate-spin" />
+              <Zap className="w-8 h-8 text-indigo-600" />
             </div>
-            <CardTitle className="text-2xl font-bold">Uploading Your Response...</CardTitle>
-            <CardDescription className="text-base">
-              Please wait while we save your interview.
-            </CardDescription>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Saving Your Responses</h2>
+            <p className="text-slate-500">
+              Almost there! We're processing your interview...
+            </p>
           </CardHeader>
+          <CardContent className="pb-12">
+            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+              <div className="h-full bg-indigo-600 rounded-full animate-pulse" style={{ width: "85%" }} />
+            </div>
+          </CardContent>
         </Card>
       </div>
     );
@@ -366,22 +517,39 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
 
   if (step === "complete") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center p-4">
-        <Card className="max-w-lg w-full shadow-2xl border-white/10 bg-white/95 backdrop-blur text-center">
-          <CardHeader>
-            <div className="mx-auto bg-green-100 p-4 rounded-full w-fit mb-4">
-              <CheckCircle className="w-12 h-12 text-green-600" />
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full rounded-3xl border-slate-200 shadow-sm text-center overflow-hidden">
+          {/* Success Header */}
+          <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 p-8 text-white">
+            <div className="mx-auto w-16 h-16 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center mb-4">
+              <CheckCircle className="w-8 h-8" />
+            </div>
+            <h2 className="text-2xl font-bold mb-1">Interview Complete!</h2>
+            <p className="text-emerald-100">Your responses have been submitted successfully</p>
           </div>
-            <CardTitle className="text-3xl font-bold text-green-700">All Done!</CardTitle>
-            <CardDescription className="text-lg">
-              Your interview has been submitted successfully.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              The hiring team will review your responses and contact you at <span className="font-medium text-foreground">{candidateEmail}</span> regarding next steps.
-          </p>
+          
+          <CardContent className="p-8">
+            <div className="bg-slate-50 rounded-2xl p-5 mb-6">
+              <p className="text-sm text-slate-500 mb-2">We'll contact you at</p>
+              <p className="font-semibold text-slate-900 flex items-center justify-center gap-2">
+                <Mail className="w-4 h-4 text-indigo-600" />
+                {candidateEmail}
+              </p>
+            </div>
+            
+            <p className="text-slate-500 text-sm leading-relaxed">
+              The hiring team will review your responses and reach out regarding next steps. Thank you for your time!
+            </p>
           </CardContent>
+          
+          <CardFooter className="p-8 pt-0">
+            <div className="w-full text-center">
+              <div className="inline-flex items-center gap-2 text-slate-400 text-sm">
+                <Zap className="w-4 h-4" />
+                Powered by Oslin AI
+              </div>
+            </div>
+          </CardFooter>
         </Card>
       </div>
     );
@@ -392,94 +560,130 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
   const timeLimit = currentQuestion?.timeLimit || 120; // Fallback default
 
   return (
-    <div className="fixed inset-0 bg-black overflow-hidden z-50 flex flex-col">
+    <div className="fixed inset-0 bg-slate-900 overflow-hidden z-50 flex flex-col">
         {/* Camera Feed Background */}
         <div className="absolute inset-0 z-0">
-        <video
-          ref={videoRef}
-          autoPlay
-          muted
-          playsInline
-                className="w-full h-full object-cover transform scale-x-[-1]" 
-            />
-            {/* Dark overlay gradient */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 pointer-events-none" />
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            playsInline
+            className="w-full h-full object-cover transform scale-x-[-1]" 
+          />
+          {/* Dark overlay gradient */}
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-900/60 via-transparent to-slate-900/80 pointer-events-none" />
         </div>
 
         {/* Top Bar */}
-        <div className="relative z-10 p-6 flex justify-between items-center text-white">
-            <Badge variant="outline" className="bg-black/20 backdrop-blur-md border-white/20 text-white">
-                Question {currentQuestionIndex + 1} of {data.jobProfile?.questions.length}
+        <div className="relative z-10 p-4 md:p-6 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center">
+              <Zap className="w-5 h-5 text-white" />
+            </div>
+            <Badge className="bg-white/10 backdrop-blur-md border-white/20 text-white hover:bg-white/10 rounded-full px-4 py-1.5">
+              Question {currentQuestionIndex + 1} of {data.jobProfile?.questions.length}
             </Badge>
+          </div>
             
-            {step === "recording" && (
-                <div className="flex items-center gap-2 bg-red-500/90 text-white px-3 py-1 rounded-full animate-pulse shadow-sm">
-                    <div className="w-2 h-2 bg-white rounded-full" />
-                    <span className="font-mono font-medium text-sm">
-              {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, "0")}
-            </span>
-                    <span className="opacity-75 text-xs border-l border-white/30 pl-2 ml-1">
+          {step === "recording" && (
+            <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/10 text-white px-4 py-2 rounded-full">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
+                <span className="text-red-400 text-xs font-medium uppercase tracking-wider">REC</span>
+              </div>
+              <div className="w-px h-4 bg-white/20" />
+              <span className="font-mono font-semibold text-sm">
+                {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, "0")}
+              </span>
+              <span className="text-white/50 text-xs">
                 / {Math.floor(timeLimit / 60)}:{(timeLimit % 60).toString().padStart(2, "0")}
               </span>
-                </div>
-            )}
-          </div>
+            </div>
+          )}
+        </div>
 
         {/* Center Content: Question Overlay */}
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-end p-4 pb-12">
-            {step === "intermission" ? (
-                 <div className="max-w-xl w-full bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl p-8 text-center shadow-2xl animate-in zoom-in duration-300">
-                    <h2 className="text-3xl font-bold text-white mb-4">Time's Up!</h2>
-                    <p className="text-white/80 mb-6">Next question starting in...</p>
-                    <div className="text-6xl font-mono font-bold text-primary animate-pulse">
-                        {intermissionTime}
-                    </div>
-                 </div>
-            ) : (
-                <div className="max-w-6xl w-full bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl p-6 text-center shadow-2xl animate-in fade-in slide-in-from-bottom-10 duration-500">
-                    <div className="flex items-center justify-center gap-2 text-white/60 text-xs font-medium mb-2 uppercase tracking-wider">
-                        <Clock className="w-3 h-3" />
-                        {timeLimit}s Answer Time
-      </div>
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-end p-4 pb-8">
+          {step === "intermission" ? (
+            <div className="max-w-lg w-full bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-10 text-center shadow-2xl animate-in zoom-in duration-300">
+              <div className="w-16 h-16 rounded-2xl bg-indigo-600 flex items-center justify-center mx-auto mb-6">
+                <Clock className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">Great job!</h2>
+              <p className="text-white/70 mb-8">Next question starting in...</p>
+              <div className="text-7xl font-mono font-bold text-indigo-400">
+                {intermissionTime}
+              </div>
+            </div>
+          ) : (
+            <div className="max-w-4xl w-full bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 md:p-8 text-center shadow-2xl animate-in fade-in slide-in-from-bottom-10 duration-500">
+              <div className="flex items-center justify-center gap-2 text-indigo-300 text-xs font-semibold mb-4 uppercase tracking-wider">
+                <Clock className="w-4 h-4" />
+                {timeLimit} seconds to answer
+              </div>
                     
-                    <h2 className="text-xl md:text-2xl font-bold text-white leading-tight mb-6 drop-shadow-sm">
-                        {currentQuestion?.text}
-                    </h2>
+              <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-white leading-tight mb-8">
+                {currentQuestion?.text}
+              </h2>
 
-      {!hasPermissions ? (
-                        <Button size="lg" className="w-full max-w-sm mx-auto" onClick={requestPermissions}>
-                            <Mic className="w-4 h-4 mr-2" />
-          Enable Camera & Microphone
-                        </Button>
-      ) : (
-                        <div className="flex flex-col items-center gap-2">
-                            <div className="flex items-center gap-2 text-red-400 font-medium animate-pulse">
-                                <div className="w-3 h-3 bg-red-500 rounded-full" />
-                                Recording...
-                            </div>
-                            <p className="text-white/50 text-xs">
-                                Recording will stop automatically when time runs out.
-                            </p>
-                        </div>
+              {!hasPermissions ? (
+                <Button 
+                  size="lg" 
+                  className="h-12 px-8 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold" 
+                  onClick={requestPermissions}
+                >
+                  <Mic className="w-5 h-5 mr-2" />
+                  Enable Camera & Microphone
+                </Button>
+              ) : (
+                <div className="flex flex-col items-center gap-5">
+                  <div className="flex items-center gap-2 bg-red-500/20 backdrop-blur px-4 py-2 rounded-full border border-red-500/30">
+                    <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
+                    <span className="text-red-300 text-sm font-medium">Recording in progress</span>
+                  </div>
+                            
+                  <Button 
+                    size="lg" 
+                    onClick={handleNextQuestion}
+                    disabled={recordingTime < 5 || isStopping}
+                    className="h-12 px-8 rounded-xl bg-white/10 backdrop-blur border border-white/20 text-white hover:bg-white/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  >
+                    {isStopping ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <SkipForward className="w-5 h-5 mr-2" />
+                        {recordingTime < 5 ? `Wait ${5 - recordingTime}s...` : "Next Question"}
+                      </>
                     )}
+                  </Button>
+                            
+                  <p className="text-white/40 text-xs">
+                    Finished early? Click the button above to continue
+                  </p>
                 </div>
+              )}
+            </div>
           )}
         </div>
 
         {/* Bottom Bar: Progress */}
-        <div className="relative z-10 px-8 pb-8 pt-0">
-            <div className="max-w-6xl mx-auto space-y-2">
-                 <div className="flex justify-between text-xs font-medium text-white/50 uppercase tracking-wider">
-                    <span>Progress</span>
-                    <span>{Math.round(((currentQuestionIndex + 1) / (data.jobProfile?.questions.length || 1)) * 100)}%</span>
-                 </div>
-                 <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden backdrop-blur-sm">
-                    <div 
-                        className="bg-white h-full transition-all duration-500 ease-out shadow-[0_0_10px_rgba(255,255,255,0.5)]"
-                        style={{ width: `${((currentQuestionIndex + 1) / (data.jobProfile?.questions.length || 1)) * 100}%` }}
-                    />
-                </div>
+        <div className="relative z-10 px-4 md:px-8 pb-6">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex justify-between text-xs font-medium text-white/50 mb-2">
+              <span>Progress</span>
+              <span>{Math.round(((currentQuestionIndex + 1) / (data.jobProfile?.questions.length || 1)) * 100)}%</span>
             </div>
+            <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden backdrop-blur-sm">
+              <div 
+                className="bg-indigo-500 h-full rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${((currentQuestionIndex + 1) / (data.jobProfile?.questions.length || 1)) * 100}%` }}
+              />
+            </div>
+          </div>
         </div>
     </div>
   );

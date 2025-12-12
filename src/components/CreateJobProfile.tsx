@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
@@ -40,7 +40,7 @@ interface SortableQuestionProps {
   canDelete: boolean;
 }
 
-function SortableQuestion({ question, index, onUpdate, onUpdateTimeLimit, onUpdateAllowRetake, onDelete, canDelete }: SortableQuestionProps) {
+function SortableQuestion({ question, index, displayNumber, onUpdate, onUpdateTimeLimit, onUpdateAllowRetake, onDelete, canDelete }: SortableQuestionProps & { displayNumber: number }) {
   const {
     attributes,
     listeners,
@@ -67,7 +67,7 @@ function SortableQuestion({ question, index, onUpdate, onUpdateTimeLimit, onUpda
         >
           <GripVertical className="w-5 h-5" />
         </button>
-        <span className="text-xs font-bold text-white bg-indigo-600 w-6 h-6 flex items-center justify-center rounded-lg flex-shrink-0 mt-2">Q{index + 1}</span>
+        <span className="text-xs font-bold text-white bg-indigo-600 w-6 h-6 flex items-center justify-center rounded-lg flex-shrink-0 mt-2">Q{displayNumber}</span>
         <div className="flex-1">
           <Input
             value={question.text}
@@ -127,8 +127,6 @@ export function CreateJobProfile() {
     allowRetake: boolean;
   }>>([{ id: crypto.randomUUID(), text: "", timeLimit: undefined, allowRetake: true }]);
   const [shuffleQuestions, setShuffleQuestions] = useState(false);
-  const questionsEndRef = useRef<HTMLDivElement>(null);
-  const newQuestionRef = useRef<HTMLDivElement>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -157,11 +155,15 @@ export function CreateJobProfile() {
     }
 
     try {
+      // Reverse questions so first entered becomes Q1 in the interview
+      // (since we prepend for UI, oldest is at the end)
+      const questionsInOrder = [...validQuestions].reverse();
+      
       await createProfile({
         title,
         description,
         qualifications: validQualifications,
-        questions: validQuestions,
+        questions: questionsInOrder,
         shuffleQuestions,
       });
       
@@ -194,11 +196,9 @@ export function CreateJobProfile() {
 
   const addQuestion = () => {
     const newQuestion = { id: crypto.randomUUID(), text: "", timeLimit: undefined, allowRetake: true };
+    // Prepend to show at TOP for easy editing
     setQuestions([newQuestion, ...questions]);
-    // Scroll to top after a brief delay to allow DOM update
-    setTimeout(() => {
-      newQuestionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
+    // New question is already at top, no scroll needed
   };
 
   const updateQuestion = (index: number, updates: Partial<typeof questions[0]>) => {
@@ -312,13 +312,18 @@ export function CreateJobProfile() {
                    collisionDetection={closestCenter}
                    onDragEnd={handleDragEnd}
                  >
+                 <p className="text-xs text-slate-500 italic mb-2">
+                   New questions appear at the top for easy editing. Q1 is the first question in the interview.
+                 </p>
+                 
                    <SortableContext items={questions.map(q => q.id)} strategy={verticalListSortingStrategy}>
                      <div className="space-y-4">
                        {questions.map((question, idx) => (
-                         <div key={question.id} ref={idx === 0 ? newQuestionRef : undefined}>
+                         <div key={question.id}>
                            <SortableQuestion
                              question={question}
                              index={idx}
+                             displayNumber={questions.length - idx}
                              onUpdate={(text) => updateQuestion(idx, { text })}
                              onUpdateTimeLimit={(timeLimit) => updateQuestion(idx, { timeLimit })}
                              onUpdateAllowRetake={(allowRetake) => updateQuestion(idx, { allowRetake })}
@@ -327,7 +332,6 @@ export function CreateJobProfile() {
                            />
                          </div>
                        ))}
-                       <div ref={questionsEndRef} />
                      </div>
                    </SortableContext>
                  </DndContext>
