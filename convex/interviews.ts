@@ -342,7 +342,7 @@ export const get = query({
         
         // Single file (legacy)
         return {
-          ...response,
+        ...response,
           videoUrl: response.videoStorageId ? await ctx.storage.getUrl(response.videoStorageId) : null,
           videoChunkUrls: [] as string[],
           isChunked: false,

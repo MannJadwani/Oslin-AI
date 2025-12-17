@@ -3,6 +3,7 @@ import { CreateJobProfile } from "./CreateJobProfile";
 import { JobProfileList } from "./JobProfileList";
 import { InterviewsList } from "./InterviewsList";
 import { IntroQuestionsManager } from "./IntroQuestionsManager";
+import { Documentation } from "./documentation/Documentation";
 import { Id } from "../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +36,10 @@ export function InterviewerDashboard() {
               <IntroQuestionsManager />
           </div>
       )
+  }
+
+  if (currentView === "documentation") {
+      return <Documentation />;
   }
 
   return (

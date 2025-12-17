@@ -41,6 +41,8 @@ export const save = mutation({
       text: v.string(),
       timeLimit: v.optional(v.number()),
       allowRetake: v.boolean(),
+      elaborateText: v.optional(v.string()),
+      elaborateExtensionSeconds: v.optional(v.number()),
     })),
   },
   handler: async (ctx, args) => {
@@ -71,4 +73,7 @@ export const save = mutation({
     }
   },
 });
+
+
+
 

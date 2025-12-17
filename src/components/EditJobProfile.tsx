@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Trash2, Clock, RefreshCw, GripVertical } from "lucide-react";
+import { Plus, Trash2, Clock, RefreshCw, GripVertical, HelpCircle, MessageSquare } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import {
   DndContext,
@@ -32,16 +32,20 @@ interface SortableQuestionProps {
     text: string;
     timeLimit?: number;
     allowRetake: boolean;
+    elaborateText?: string;
+    elaborateExtensionSeconds?: number;
   };
   index: number;
   onUpdate: (text: string) => void;
   onUpdateTimeLimit: (timeLimit?: number) => void;
   onUpdateAllowRetake: (allowRetake: boolean) => void;
+  onUpdateElaborateText: (text: string) => void;
+  onUpdateElaborateExtension: (seconds?: number) => void;
   onDelete: () => void;
   canDelete: boolean;
 }
 
-function SortableQuestion({ question, index, displayNumber, onUpdate, onUpdateTimeLimit, onUpdateAllowRetake, onDelete, canDelete }: SortableQuestionProps & { displayNumber: number }) {
+function SortableQuestion({ question, index, displayNumber, onUpdate, onUpdateTimeLimit, onUpdateAllowRetake, onUpdateElaborateText, onUpdateElaborateExtension, onDelete, canDelete }: SortableQuestionProps & { displayNumber: number }) {
   const {
     attributes,
     listeners,
@@ -84,7 +88,7 @@ function SortableQuestion({ question, index, displayNumber, onUpdate, onUpdateTi
         )}
       </div>
       
-      <div className="flex gap-6 pl-9">
+      <div className="flex flex-wrap gap-3 pl-9">
         <div className="flex items-center gap-3 bg-white px-3 py-1.5 rounded-lg border border-slate-100">
           <Clock className="w-4 h-4 text-slate-400" />
           <div className="flex items-center gap-2">
@@ -112,6 +116,34 @@ function SortableQuestion({ question, index, displayNumber, onUpdate, onUpdateTi
           </label>
         </div>
       </div>
+      
+      {/* Elaborate Text Section */}
+      <div className="pl-9 space-y-2 mt-3">
+        <label className="text-xs font-semibold text-slate-600 flex items-center gap-2">
+          <HelpCircle className="w-3.5 h-3.5" />
+          "Please Elaborate" Feature (Optional)
+        </label>
+        <div className="space-y-2">
+          <textarea
+            value={question.elaborateText || ""}
+            onChange={(e) => onUpdateElaborateText(e.target.value)}
+            placeholder="Additional explanation text shown when candidate clicks 'Please elaborate'..."
+            className="flex min-h-[60px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
+          />
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <span>Extension time:</span>
+            <Input
+              type="number"
+              value={question.elaborateExtensionSeconds || 10}
+              onChange={(e) => onUpdateElaborateExtension(e.target.value ? parseInt(e.target.value) : 10)}
+              className="w-16 h-7 px-2 text-xs border-slate-200"
+              min="1"
+              max="60"
+            />
+            <span>seconds</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -134,8 +166,11 @@ export function EditJobProfile({ profileId, isOpen, onOpenChange }: EditJobProfi
     text: string;
     timeLimit?: number;
     allowRetake: boolean;
-  }>>([{ id: crypto.randomUUID(), text: "", timeLimit: undefined, allowRetake: true }]);
+    elaborateText?: string;
+    elaborateExtensionSeconds?: number;
+  }>>([{ id: crypto.randomUUID(), text: "", timeLimit: undefined, allowRetake: true, elaborateText: undefined, elaborateExtensionSeconds: 10 }]);
   const [shuffleQuestions, setShuffleQuestions] = useState(false);
+  const [faq, setFaq] = useState<Array<{ id: string; question: string; answer: string }>>([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -153,9 +188,10 @@ export function EditJobProfile({ profileId, isOpen, onOpenChange }: EditJobProfi
       // Reverse questions for editing display (newest at top, Q1 at bottom)
       const questionsForDisplay = profile.questions.length > 0 
         ? [...profile.questions].reverse() 
-        : [{ id: crypto.randomUUID(), text: "", timeLimit: undefined, allowRetake: true }];
+        : [{ id: crypto.randomUUID(), text: "", timeLimit: undefined, allowRetake: true, elaborateText: undefined, elaborateExtensionSeconds: 10 }];
       setQuestions(questionsForDisplay);
       setShuffleQuestions(profile.shuffleQuestions ?? false);
+      setFaq(profile.faq ?? []);
     }
   }, [profile, isOpen]);
 
@@ -187,6 +223,7 @@ export function EditJobProfile({ profileId, isOpen, onOpenChange }: EditJobProfi
         qualifications: validQualifications,
         questions: questionsInOrder,
         shuffleQuestions,
+        faq: faq.filter(item => item.question.trim() && item.answer.trim()),
       });
       
       toast.success("Job profile updated successfully");
@@ -208,9 +245,25 @@ export function EditJobProfile({ profileId, isOpen, onOpenChange }: EditJobProfi
   };
 
   const addQuestion = () => {
-    const newQuestion = { id: crypto.randomUUID(), text: "", timeLimit: undefined, allowRetake: true };
+    const newQuestion = { id: crypto.randomUUID(), text: "", timeLimit: undefined, allowRetake: true, elaborateText: undefined, elaborateExtensionSeconds: 10 };
     // Prepend to show at TOP for easy editing
     setQuestions([newQuestion, ...questions]);
+  };
+
+  const addFaqItem = () => {
+    setFaq([...faq, { id: crypto.randomUUID(), question: "", answer: "" }]);
+  };
+
+  const updateFaqItem = (index: number, updates: Partial<{ question: string; answer: string }>) => {
+    setFaq((prev) => {
+      const newFaq = [...prev];
+      newFaq[index] = { ...newFaq[index], ...updates };
+      return newFaq;
+    });
+  };
+
+  const deleteFaqItem = (index: number) => {
+    setFaq(faq.filter((_, i) => i !== index));
   };
 
   const updateQuestion = (index: number, updates: Partial<typeof questions[0]>) => {
@@ -338,6 +391,8 @@ export function EditJobProfile({ profileId, isOpen, onOpenChange }: EditJobProfi
                              onUpdate={(text) => updateQuestion(idx, { text })}
                              onUpdateTimeLimit={(timeLimit) => updateQuestion(idx, { timeLimit })}
                              onUpdateAllowRetake={(allowRetake) => updateQuestion(idx, { allowRetake })}
+                             onUpdateElaborateText={(text) => updateQuestion(idx, { elaborateText: text })}
+                             onUpdateElaborateExtension={(seconds) => updateQuestion(idx, { elaborateExtensionSeconds: seconds })}
                              onDelete={() => setQuestions(questions.filter((_, i) => i !== idx))}
                              canDelete={questions.length > 1}
                            />
@@ -346,6 +401,63 @@ export function EditJobProfile({ profileId, isOpen, onOpenChange }: EditJobProfi
                      </div>
                    </SortableContext>
                  </DndContext>
+            </div>
+
+            <Separator className="bg-slate-100" />
+
+            {/* FAQ Section */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <label className="text-sm font-semibold text-slate-700 ml-1 flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-indigo-600" />
+                  Post-Interview FAQ
+                </label>
+                <Button type="button" variant="ghost" size="sm" onClick={addFaqItem} className="rounded-xl text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50">
+                  <Plus className="w-4 h-4 mr-1" /> Add FAQ Item
+                </Button>
+              </div>
+              <p className="text-xs text-slate-500 italic">
+                These questions will be shown to candidates after they complete the interview.
+              </p>
+              <div className="space-y-3">
+                {faq.map((item, idx) => (
+                  <div key={item.id} className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <span className="text-xs font-bold text-white bg-indigo-600 w-6 h-6 flex items-center justify-center rounded-lg flex-shrink-0 mt-1">
+                        {idx + 1}
+                      </span>
+                      <div className="flex-1 space-y-2">
+                        <Input
+                          value={item.question}
+                          onChange={(e) => updateFaqItem(idx, { question: e.target.value })}
+                          placeholder="FAQ Question..."
+                          className="rounded-lg bg-white border-slate-200 focus:border-slate-400 transition-all h-10"
+                        />
+                        <textarea
+                          value={item.answer}
+                          onChange={(e) => updateFaqItem(idx, { answer: e.target.value })}
+                          placeholder="FAQ Answer..."
+                          className="flex min-h-[80px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => deleteFaqItem(idx)}
+                        className="text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full mt-1"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                {faq.length === 0 && (
+                  <div className="text-center py-8 text-slate-400 text-sm border border-dashed border-slate-200 rounded-xl">
+                    No FAQ items yet. Click "Add FAQ Item" to create one.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

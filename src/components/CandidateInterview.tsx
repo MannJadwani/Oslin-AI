@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Zap, Mic, CheckCircle, Clock, AlertCircle, SkipForward, Loader2, User, Mail, Briefcase, Shield, ArrowRight } from "lucide-react";
+import { Zap, Mic, CheckCircle, Clock, AlertCircle, SkipForward, Loader2, User, Mail, Briefcase, Shield, ArrowRight, HelpCircle, X, MessageSquare } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface CandidateInterviewProps {
   linkId: string;
@@ -34,6 +35,10 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
   const [isStarting, setIsStarting] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
   const isStoppingRef = useRef(false);
+  const [showTimerCenter, setShowTimerCenter] = useState(false);
+  const [showElaborateModal, setShowElaborateModal] = useState(false);
+  const [timeLimitExtended, setTimeLimitExtended] = useState(false);
+  const [currentTimeLimit, setCurrentTimeLimit] = useState(0);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -63,6 +68,30 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
         if (data.interview.candidateEmail) setCandidateEmail(data.interview.candidateEmail);
     }
   }, [data]);
+
+  // Show timer in center when question starts, then move to top-right after 3 seconds
+  useEffect(() => {
+    if (step === "recording" && currentQuestionIndex >= 0) {
+      setShowTimerCenter(true);
+      setTimeLimitExtended(false);
+      const currentQuestion = data?.jobProfile?.questions[currentQuestionIndex];
+      const limit = currentQuestion?.timeLimit || 120;
+      setCurrentTimeLimit(limit);
+      
+      const timer = setTimeout(() => {
+        setShowTimerCenter(false);
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [step, currentQuestionIndex, data?.jobProfile?.questions]);
+
+  // Reset time limit extension when question changes
+  useEffect(() => {
+    if (step === "recording") {
+      setTimeLimitExtended(false);
+    }
+  }, [currentQuestionIndex, step]);
 
   // Auto-start recording when entering 'recording' state
   useEffect(() => {
@@ -330,17 +359,35 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
       stopRecordingAndAdvance();
   }, [isRecording, isStopping, recordingTime, stopRecordingAndAdvance]);
 
-  // Monitor time limit
+  // Handle "Please elaborate" button click
+  const handleElaborate = useCallback(() => {
+    const currentQuestion = data?.jobProfile?.questions[currentQuestionIndex];
+    if (!currentQuestion?.elaborateText) return;
+    
+    setShowElaborateModal(true);
+    
+    // Extend time limit (only once per question)
+    if (!timeLimitExtended) {
+      const extension = currentQuestion.elaborateExtensionSeconds || 10;
+      const baseLimit = currentQuestion.timeLimit || 120;
+      setCurrentTimeLimit(baseLimit + extension);
+      setTimeLimitExtended(true);
+      toast.success(`Time extended by ${extension} seconds`);
+    }
+  }, [currentQuestionIndex, data?.jobProfile?.questions, timeLimitExtended]);
+
+  // Monitor time limit (accounting for extensions)
   useEffect(() => {
     if (!isRecording || !data?.jobProfile) return;
 
     const currentQuestion = data.jobProfile.questions[currentQuestionIndex];
-    const limit = currentQuestion?.timeLimit || 120;
+    const baseLimit = currentQuestion?.timeLimit || 120;
+    const effectiveLimit = timeLimitExtended ? currentTimeLimit : baseLimit;
 
-    if (recordingTime >= limit) {
+    if (recordingTime >= effectiveLimit) {
       handleTimeUp();
     }
-  }, [recordingTime, isRecording, currentQuestionIndex, data, handleTimeUp]);
+  }, [recordingTime, isRecording, currentQuestionIndex, data?.jobProfile, timeLimitExtended, currentTimeLimit, handleTimeUp]);
 
   if (data === undefined) {
     return (
@@ -370,8 +417,8 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
             </div>
             <h2 className="text-2xl font-bold text-slate-900 mb-2">Interview Not Found</h2>
             <p className="text-slate-500">This interview link is invalid or has expired. Please contact the hiring team for a new link.</p>
-          </CardHeader>
-        </Card>
+        </CardHeader>
+      </Card>
       </div>
     );
   }
@@ -429,37 +476,37 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
                   <li className="list-disc">Answer until the timer runs out</li>
                   <li className="list-disc">No retakes allowed</li>
                 </ul>
-              </div>
+        </div>
 
               {/* Input Fields */}
               <div className="space-y-4">
-                <div className="space-y-2">
+              <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700">Full Name</label>
                   <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                    <Input
-                      value={candidateName}
-                      onChange={(e) => setCandidateName(e.target.value)}
-                      placeholder="Enter your full name"
+                <Input
+              value={candidateName}
+              onChange={(e) => setCandidateName(e.target.value)}
+                  placeholder="Enter your full name"
                       className="pl-12 h-12 rounded-xl bg-slate-50 border-slate-200 focus:bg-white"
-                    />
+            />
                   </div>
-                </div>
-                <div className="space-y-2">
+          </div>
+              <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700">Email Address</label>
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                    <Input
-                      type="email"
-                      value={candidateEmail}
-                      onChange={(e) => setCandidateEmail(e.target.value)}
-                      placeholder="Enter your email"
+                <Input
+              type="email"
+              value={candidateEmail}
+              onChange={(e) => setCandidateEmail(e.target.value)}
+                  placeholder="Enter your email"
                       className="pl-12 h-12 rounded-xl bg-slate-50 border-slate-200 focus:bg-white"
-                    />
+            />
                   </div>
-                </div>
-              </div>
-            </CardContent>
+          </div>
+        </div>
+          </CardContent>
 
             <CardFooter className="p-6 md:p-8 pt-0">
               <Button 
@@ -475,13 +522,13 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
                   </>
                 ) : (
                   <>
-                    I'm Ready to Start
+              I'm Ready to Start
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </>
                 )}
-              </Button>
-            </CardFooter>
-          </Card>
+            </Button>
+          </CardFooter>
+        </Card>
 
           <p className="text-center text-slate-400 text-xs mt-6">
             By starting, you agree to have your responses recorded and analyzed
@@ -516,61 +563,105 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
   }
 
   if (step === "complete") {
+    const faqItems = data?.jobProfile?.faq || [];
+    
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full rounded-3xl border-slate-200 shadow-sm text-center overflow-hidden">
-          {/* Success Header */}
-          <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 p-8 text-white">
-            <div className="mx-auto w-16 h-16 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center mb-4">
-              <CheckCircle className="w-8 h-8" />
-            </div>
-            <h2 className="text-2xl font-bold mb-1">Interview Complete!</h2>
-            <p className="text-emerald-100">Your responses have been submitted successfully</p>
-          </div>
-          
-          <CardContent className="p-8">
-            <div className="bg-slate-50 rounded-2xl p-5 mb-6">
-              <p className="text-sm text-slate-500 mb-2">We'll contact you at</p>
-              <p className="font-semibold text-slate-900 flex items-center justify-center gap-2">
-                <Mail className="w-4 h-4 text-indigo-600" />
-                {candidateEmail}
-              </p>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 py-12">
+        <div className="max-w-2xl w-full space-y-6">
+          {/* Success Card */}
+          <Card className="rounded-3xl border-slate-200 shadow-sm text-center overflow-hidden">
+            {/* Success Header */}
+            <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 p-8 text-white">
+              <div className="mx-auto w-16 h-16 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center mb-4">
+                <CheckCircle className="w-8 h-8" />
+              </div>
+              <h2 className="text-2xl font-bold mb-1">Interview Complete!</h2>
+              <p className="text-emerald-100">Your responses have been submitted successfully</p>
             </div>
             
-            <p className="text-slate-500 text-sm leading-relaxed">
-              The hiring team will review your responses and reach out regarding next steps. Thank you for your time!
-            </p>
-          </CardContent>
-          
-          <CardFooter className="p-8 pt-0">
-            <div className="w-full text-center">
-              <div className="inline-flex items-center gap-2 text-slate-400 text-sm">
-                <Zap className="w-4 h-4" />
-                Powered by Oslin AI
+            <CardContent className="p-8">
+              <div className="bg-slate-50 rounded-2xl p-5 mb-6">
+                <p className="text-sm text-slate-500 mb-2">We'll contact you at</p>
+                <p className="font-semibold text-slate-900 flex items-center justify-center gap-2">
+                  <Mail className="w-4 h-4 text-indigo-600" />
+                  {candidateEmail}
+                </p>
               </div>
-            </div>
-          </CardFooter>
-        </Card>
+              
+              <p className="text-slate-500 text-sm leading-relaxed">
+                The hiring team will review your responses and reach out regarding next steps. Thank you for your time!
+              </p>
+            </CardContent>
+            
+            <CardFooter className="p-8 pt-0">
+              <div className="w-full text-center">
+                <div className="inline-flex items-center gap-2 text-slate-400 text-sm">
+                  <Zap className="w-4 h-4" />
+                  Powered by Oslin AI
+                </div>
+              </div>
+            </CardFooter>
+          </Card>
+
+          {/* FAQ Section */}
+          {faqItems.length > 0 && (
+            <Card className="rounded-3xl border-slate-200 shadow-sm overflow-hidden">
+              <CardHeader className="bg-indigo-50 border-b border-slate-200">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center">
+                    <MessageSquare className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900">Frequently Asked Questions</h3>
+                    <p className="text-sm text-slate-600">Common questions about this position</p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-6">
+                  {faqItems.map((item, idx) => (
+                    <div key={item.id} className="space-y-2">
+                      <h4 className="font-semibold text-slate-900 flex items-start gap-2">
+                        <span className="text-indigo-600 font-bold text-sm mt-1">Q{idx + 1}:</span>
+                        <span>{item.question}</span>
+                      </h4>
+                      <p className="text-slate-600 text-sm leading-relaxed pl-6">
+                        {item.answer}
+                      </p>
+                      {idx < faqItems.length - 1 && (
+                        <div className="border-b border-slate-100 pt-4" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     );
   }
 
   // Main Interview UI (Recording or Intermission)
   const currentQuestion = data.jobProfile?.questions[currentQuestionIndex];
-  const timeLimit = currentQuestion?.timeLimit || 120; // Fallback default
+  const baseTimeLimit = currentQuestion?.timeLimit || 120; // Fallback default
+  // Use extended time limit if elaboration was clicked, otherwise use base
+  const effectiveTimeLimit = timeLimitExtended ? currentTimeLimit : baseTimeLimit;
+  const timeRemaining = Math.max(0, effectiveTimeLimit - recordingTime);
+  const hasElaborateText = !!currentQuestion?.elaborateText;
 
   return (
     <div className="fixed inset-0 bg-slate-900 overflow-hidden z-50 flex flex-col">
         {/* Camera Feed Background */}
         <div className="absolute inset-0 z-0">
-          <video
-            ref={videoRef}
-            autoPlay
-            muted
-            playsInline
-            className="w-full h-full object-cover transform scale-x-[-1]" 
-          />
-          {/* Dark overlay gradient */}
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          playsInline
+                className="w-full h-full object-cover transform scale-x-[-1]" 
+            />
+            {/* Dark overlay gradient */}
           <div className="absolute inset-0 bg-gradient-to-b from-slate-900/60 via-transparent to-slate-900/80 pointer-events-none" />
         </div>
 
@@ -581,30 +672,41 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
               <Zap className="w-5 h-5 text-white" />
             </div>
             <Badge className="bg-white/10 backdrop-blur-md border-white/20 text-white hover:bg-white/10 rounded-full px-4 py-1.5">
-              Question {currentQuestionIndex + 1} of {data.jobProfile?.questions.length}
+                Question {currentQuestionIndex + 1} of {data.jobProfile?.questions.length}
             </Badge>
           </div>
             
-          {step === "recording" && (
-            <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/10 text-white px-4 py-2 rounded-full">
+            {step === "recording" && !showTimerCenter && (
+            <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/10 text-white px-4 py-2 rounded-full transition-all duration-500">
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
                 <span className="text-red-400 text-xs font-medium uppercase tracking-wider">REC</span>
               </div>
               <div className="w-px h-4 bg-white/20" />
               <span className="font-mono font-semibold text-sm">
-                {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, "0")}
-              </span>
-              <span className="text-white/50 text-xs">
-                / {Math.floor(timeLimit / 60)}:{(timeLimit % 60).toString().padStart(2, "0")}
+                Time left: {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, "0")}
               </span>
             </div>
-          )}
-        </div>
+            )}
+          </div>
+
+        {/* Center Timer Animation */}
+        {step === "recording" && showTimerCenter && (
+          <div className="fixed inset-0 z-20 flex items-center justify-center pointer-events-none">
+            <div className="bg-white/20 backdrop-blur-xl border-2 border-white/30 rounded-3xl px-12 py-8 animate-in zoom-in duration-300">
+              <div className="text-center">
+                <div className="text-6xl font-mono font-bold text-white mb-2">
+                  {Math.floor(baseTimeLimit / 60)}:{(baseTimeLimit % 60).toString().padStart(2, "0")}
+                </div>
+                <p className="text-white/80 text-sm font-medium">Time limit</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Center Content: Question Overlay */}
         <div className="relative z-10 flex-1 flex flex-col items-center justify-end p-4 pb-8">
-          {step === "intermission" ? (
+            {step === "intermission" ? (
             <div className="max-w-lg w-full bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-10 text-center shadow-2xl animate-in zoom-in duration-300">
               <div className="w-16 h-16 rounded-2xl bg-indigo-600 flex items-center justify-center mx-auto mb-6">
                 <Clock className="w-8 h-8 text-white" />
@@ -612,61 +714,74 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
               <h2 className="text-2xl font-bold text-white mb-2">Great job!</h2>
               <p className="text-white/70 mb-8">Next question starting in...</p>
               <div className="text-7xl font-mono font-bold text-indigo-400">
-                {intermissionTime}
-              </div>
-            </div>
-          ) : (
+                        {intermissionTime}
+                    </div>
+                 </div>
+            ) : (
             <div className="max-w-4xl w-full bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 md:p-8 text-center shadow-2xl animate-in fade-in slide-in-from-bottom-10 duration-500">
               <div className="flex items-center justify-center gap-2 text-indigo-300 text-xs font-semibold mb-4 uppercase tracking-wider">
                 <Clock className="w-4 h-4" />
                 {timeLimit} seconds to answer
-              </div>
+      </div>
                     
               <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-white leading-tight mb-8">
-                {currentQuestion?.text}
-              </h2>
+                        {currentQuestion?.text}
+                    </h2>
 
-              {!hasPermissions ? (
+      {!hasPermissions ? (
                 <Button 
                   size="lg" 
                   className="h-12 px-8 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold" 
                   onClick={requestPermissions}
                 >
                   <Mic className="w-5 h-5 mr-2" />
-                  Enable Camera & Microphone
-                </Button>
-              ) : (
+          Enable Camera & Microphone
+                        </Button>
+      ) : (
                 <div className="flex flex-col items-center gap-5">
                   <div className="flex items-center gap-2 bg-red-500/20 backdrop-blur px-4 py-2 rounded-full border border-red-500/30">
                     <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
                     <span className="text-red-300 text-sm font-medium">Recording in progress</span>
                   </div>
-                            
-                  <Button 
-                    size="lg" 
-                    onClick={handleNextQuestion}
-                    disabled={recordingTime < 5 || isStopping}
-                    className="h-12 px-8 rounded-xl bg-white/10 backdrop-blur border border-white/20 text-white hover:bg-white/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                  >
-                    {isStopping ? (
-                      <>
-                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <SkipForward className="w-5 h-5 mr-2" />
-                        {recordingTime < 5 ? `Wait ${5 - recordingTime}s...` : "Next Question"}
-                      </>
+                  
+                  <div className="flex items-center gap-3">
+                    {hasElaborateText && (
+                      <Button 
+                        size="lg" 
+                        onClick={handleElaborate}
+                        className="h-12 px-6 rounded-xl bg-indigo-600/90 hover:bg-indigo-700 text-white font-semibold backdrop-blur border border-indigo-500/30 transition-all"
+                      >
+                        <HelpCircle className="w-5 h-5 mr-2" />
+                        Please Elaborate
+                      </Button>
                     )}
-                  </Button>
+                            
+                    <Button 
+                      size="lg" 
+                      onClick={handleNextQuestion}
+                      disabled={recordingTime < 5 || isStopping}
+                      className="h-12 px-8 rounded-xl bg-white/10 backdrop-blur border border-white/20 text-white hover:bg-white/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                    >
+                      {isStopping ? (
+                        <>
+                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <SkipForward className="w-5 h-5 mr-2" />
+                          {recordingTime < 5 ? `Wait ${5 - recordingTime}s...` : "Next Question"}
+                        </>
+                      )}
+                    </Button>
+                  </div>
                             
                   <p className="text-white/40 text-xs">
-                    Finished early? Click the button above to continue
+                    {hasElaborateText ? "Need more context? Click 'Please Elaborate' for additional details." : "Finished early? Click the button above to continue"}
                   </p>
                 </div>
-              )}
-            </div>
+                    )}
+                </div>
           )}
         </div>
 
@@ -674,17 +789,56 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
         <div className="relative z-10 px-4 md:px-8 pb-6">
           <div className="max-w-4xl mx-auto">
             <div className="flex justify-between text-xs font-medium text-white/50 mb-2">
-              <span>Progress</span>
-              <span>{Math.round(((currentQuestionIndex + 1) / (data.jobProfile?.questions.length || 1)) * 100)}%</span>
-            </div>
+                    <span>Progress</span>
+                    <span>{Math.round(((currentQuestionIndex + 1) / (data.jobProfile?.questions.length || 1)) * 100)}%</span>
+                 </div>
             <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden backdrop-blur-sm">
-              <div 
+                    <div 
                 className="bg-indigo-500 h-full rounded-full transition-all duration-500 ease-out"
-                style={{ width: `${((currentQuestionIndex + 1) / (data.jobProfile?.questions.length || 1)) * 100}%` }}
-              />
+                        style={{ width: `${((currentQuestionIndex + 1) / (data.jobProfile?.questions.length || 1)) * 100}%` }}
+                    />
+                </div>
             </div>
-          </div>
         </div>
+
+        {/* Elaborate Modal */}
+        <Dialog open={showElaborateModal} onOpenChange={setShowElaborateModal}>
+          <DialogContent className="max-w-2xl rounded-2xl border-slate-200">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-xl">
+                <HelpCircle className="w-5 h-5 text-indigo-600" />
+                Additional Context
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-4">
+                <p className="text-sm font-semibold text-indigo-900 mb-1">Question:</p>
+                <p className="text-indigo-800">{currentQuestion?.text}</p>
+              </div>
+              <div className="prose prose-sm max-w-none">
+                <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
+                  {currentQuestion?.elaborateText}
+                </p>
+              </div>
+              {timeLimitExtended && (
+                <div className="mt-4 bg-emerald-50 border border-emerald-200 rounded-lg p-3 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-emerald-600" />
+                  <span className="text-sm text-emerald-800 font-medium">
+                    Your time has been extended by {currentQuestion?.elaborateExtensionSeconds || 10} seconds
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+              <Button
+                onClick={() => setShowElaborateModal(false)}
+                className="rounded-xl bg-indigo-600 hover:bg-indigo-700"
+              >
+                Got it, thanks!
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
     </div>
   );
 }

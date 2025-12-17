@@ -11,6 +11,8 @@ const applicationTables = {
       text: v.string(),
       timeLimit: v.optional(v.number()), // in seconds, optional
       allowRetake: v.boolean(),
+      elaborateText: v.optional(v.string()), // Additional explanation text for "Please elaborate"
+      elaborateExtensionSeconds: v.optional(v.number()), // Seconds to add when "Please elaborate" is clicked (default 10)
     })),
   }).index("by_user", ["userId"]),
 
@@ -24,7 +26,14 @@ const applicationTables = {
       text: v.string(),
       timeLimit: v.optional(v.number()), // in seconds, optional
       allowRetake: v.boolean(),
+      elaborateText: v.optional(v.string()), // Additional explanation text for "Please elaborate"
+      elaborateExtensionSeconds: v.optional(v.number()), // Seconds to add when "Please elaborate" is clicked (default 10)
     })),
+    faq: v.optional(v.array(v.object({
+      id: v.string(),
+      question: v.string(),
+      answer: v.string(),
+    }))), // Post-interview FAQ items
     status: v.union(v.literal("active"), v.literal("archived")),
     publicLinkId: v.optional(v.string()), // For sharing public links
     shuffleQuestions: v.optional(v.boolean()), // Shuffle questions for each new candidate

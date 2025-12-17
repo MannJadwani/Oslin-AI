@@ -17,7 +17,14 @@ export const create = mutation({
       text: v.string(),
       timeLimit: v.optional(v.number()),
       allowRetake: v.boolean(),
+      elaborateText: v.optional(v.string()),
+      elaborateExtensionSeconds: v.optional(v.number()),
     })),
+    faq: v.optional(v.array(v.object({
+      id: v.string(),
+      question: v.string(),
+      answer: v.string(),
+    }))),
     shuffleQuestions: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
@@ -32,6 +39,7 @@ export const create = mutation({
       description: args.description,
       qualifications: args.qualifications,
       questions: args.questions,
+      faq: args.faq ?? [],
       status: "active",
       publicLinkId: generatePublicLinkId(),
       shuffleQuestions: args.shuffleQuestions ?? false,
@@ -130,7 +138,14 @@ export const update = mutation({
       text: v.string(),
       timeLimit: v.optional(v.number()),
       allowRetake: v.boolean(),
+      elaborateText: v.optional(v.string()),
+      elaborateExtensionSeconds: v.optional(v.number()),
     })),
+    faq: v.optional(v.array(v.object({
+      id: v.string(),
+      question: v.string(),
+      answer: v.string(),
+    }))),
     shuffleQuestions: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
@@ -149,6 +164,7 @@ export const update = mutation({
       description: args.description,
       qualifications: args.qualifications,
       questions: args.questions,
+      faq: args.faq ?? [],
       shuffleQuestions: args.shuffleQuestions ?? false,
     });
   },

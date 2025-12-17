@@ -267,15 +267,15 @@ export function InterviewDetail({ interviewId }: InterviewDetailProps) {
                       </span>
                       <h4 className="font-semibold text-slate-900">{question.text}</h4>
                     </div>
-                    {questionAnalysis && (
+                {questionAnalysis && (
                       <div className={`px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0 ${questionAnalysis.score >= 70 ? "bg-emerald-500 text-white" : "bg-amber-500 text-white"}`}>
                         Score: {questionAnalysis.score}/100
                       </div>
-                    )}
-                  </div>
+                        )}
+                    </div>
                 </CardHeader>
                 <CardContent className="p-5 md:p-6 bg-white">
-                  {questionAnalysis && (
+                    {questionAnalysis && (
                     <div className="mb-6 p-4 bg-indigo-50 rounded-xl border border-indigo-100">
                       <p className="text-sm text-slate-600">
                         <span className="font-semibold text-indigo-700">AI Feedback:</span> {questionAnalysis.feedback}

@@ -7,6 +7,7 @@ import {
   Menu,
   Zap,
   User,
+  BookOpen,
 } from "lucide-react";
 import { useState } from "react";
 import { SignOutButton } from "../SignOutButton";
@@ -27,6 +28,7 @@ export function Layout({ children }: LayoutProps) {
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "interviews", label: "Interviews", icon: Video },
     { id: "candidates", label: "Candidates", icon: Users },
+    { id: "documentation", label: "Documentation", icon: BookOpen },
     { id: "settings", label: "Settings", icon: Settings },
   ] as const;
 
