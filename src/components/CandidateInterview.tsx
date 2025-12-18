@@ -107,7 +107,7 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
     }
   }, [step, hasPermissions]);
 
-  const requestPermissions = async () => {
+  const requestPermissions = async (): Promise<boolean> => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -128,8 +128,11 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
       }
       setHasPermissions(true);
       toast.success("Camera and microphone access granted");
+      return true;
     } catch (error) {
+      console.error("Permission error:", error);
       toast.error("Please allow camera and microphone access to continue");
+      return false;
     }
   };
 
@@ -143,20 +146,39 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
     setIsStarting(true);
 
     try {
+      // Request permissions FIRST before creating interview
+      const permissionsGranted = await requestPermissions();
+      if (!permissionsGranted) {
+        setIsStarting(false);
+        return;
+      }
+
+      // Only create interview after permissions are granted
       const id = await startInterview({
         linkId,
         candidateName,
         candidateEmail,
       });
       setInterviewId(id);
-      // We need permissions before moving to recording
-      await requestPermissions();
       setStep("recording");
     } catch (error) {
-      if (error instanceof Error && error.message.includes("Interview already started")) {
+      console.error("Error starting interview:", error);
+      if (error instanceof Error) {
+        if (error.message.includes("Interview already started")) {
           toast.error("This interview has already been started or completed.");
+        } else if (error.message.includes("Invalid or expired")) {
+          toast.error("This interview link is invalid or has expired.");
+        } else {
+          toast.error(`Failed to start interview: ${error.message}`);
+        }
       } else {
-      toast.error("Failed to start interview");
+        toast.error("Failed to start interview. Please try again.");
+      }
+      // Reset permissions if interview creation failed
+      setHasPermissions(false);
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
       }
     } finally {
       setIsStarting(false);
@@ -362,13 +384,13 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
   // Handle "Please elaborate" button click
   const handleElaborate = useCallback(() => {
     const currentQuestion = data?.jobProfile?.questions[currentQuestionIndex];
-    if (!currentQuestion?.elaborateText) return;
+    if (!currentQuestion || !('elaborateText' in currentQuestion) || !currentQuestion.elaborateText) return;
     
     setShowElaborateModal(true);
     
     // Extend time limit (only once per question)
     if (!timeLimitExtended) {
-      const extension = currentQuestion.elaborateExtensionSeconds || 10;
+      const extension = ('elaborateExtensionSeconds' in currentQuestion && currentQuestion.elaborateExtensionSeconds) || 10;
       const baseLimit = currentQuestion.timeLimit || 120;
       setCurrentTimeLimit(baseLimit + extension);
       setTimeLimitExtended(true);
@@ -648,7 +670,7 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
   // Use extended time limit if elaboration was clicked, otherwise use base
   const effectiveTimeLimit = timeLimitExtended ? currentTimeLimit : baseTimeLimit;
   const timeRemaining = Math.max(0, effectiveTimeLimit - recordingTime);
-  const hasElaborateText = !!currentQuestion?.elaborateText;
+  const hasElaborateText = !!(currentQuestion && 'elaborateText' in currentQuestion && currentQuestion.elaborateText);
 
   return (
     <div className="fixed inset-0 bg-slate-900 overflow-hidden z-50 flex flex-col">
@@ -721,7 +743,7 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
             <div className="max-w-4xl w-full bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 md:p-8 text-center shadow-2xl animate-in fade-in slide-in-from-bottom-10 duration-500">
               <div className="flex items-center justify-center gap-2 text-indigo-300 text-xs font-semibold mb-4 uppercase tracking-wider">
                 <Clock className="w-4 h-4" />
-                {timeLimit} seconds to answer
+                {effectiveTimeLimit} seconds to answer
       </div>
                     
               <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-white leading-tight mb-8">
@@ -817,14 +839,14 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
               </div>
               <div className="prose prose-sm max-w-none">
                 <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
-                  {currentQuestion?.elaborateText}
+                  {currentQuestion && 'elaborateText' in currentQuestion ? currentQuestion.elaborateText : ''}
                 </p>
               </div>
               {timeLimitExtended && (
                 <div className="mt-4 bg-emerald-50 border border-emerald-200 rounded-lg p-3 flex items-center gap-2">
                   <Clock className="w-4 h-4 text-emerald-600" />
                   <span className="text-sm text-emerald-800 font-medium">
-                    Your time has been extended by {currentQuestion?.elaborateExtensionSeconds || 10} seconds
+                    Your time has been extended by {currentQuestion && 'elaborateExtensionSeconds' in currentQuestion ? (currentQuestion.elaborateExtensionSeconds || 10) : 10} seconds
                   </span>
                 </div>
               )}

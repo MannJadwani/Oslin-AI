@@ -154,8 +154,18 @@ export const startInterview = mutation({
       .first();
 
     if (existingInterview) {
+      // Allow resuming if same candidate and interview is in_progress
+      if (existingInterview.status === "in_progress" && 
+          existingInterview.candidateEmail === args.candidateEmail) {
+        // Resume existing interview
+        return existingInterview._id;
+      }
+      
       if (existingInterview.status !== "pending") {
-         throw new Error("Interview already started");
+        if (existingInterview.status === "completed" || existingInterview.status === "analyzed") {
+          throw new Error("This interview has already been completed");
+        }
+        throw new Error("This interview link has already been used. Please contact the hiring team for a new link.");
       }
       
       const jobProfile = await ctx.db.get(existingInterview.jobProfileId);
@@ -184,6 +194,21 @@ export const startInterview = mutation({
 
     if (!jobProfile || jobProfile.status !== "active") {
         throw new Error("Invalid or expired link");
+    }
+
+    // Check for existing in_progress interview for this candidate and job profile
+    const existingCandidateInterview = await ctx.db
+      .query("interviews")
+      .withIndex("by_job_profile", (q) => q.eq("jobProfileId", jobProfile._id))
+      .filter((q) => 
+        q.eq(q.field("candidateEmail"), args.candidateEmail) &&
+        q.eq(q.field("status"), "in_progress")
+      )
+      .first();
+
+    if (existingCandidateInterview) {
+      // Allow resuming existing interview for same candidate
+      return existingCandidateInterview._id;
     }
 
     // Shuffle questions if enabled
