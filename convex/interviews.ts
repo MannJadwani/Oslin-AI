@@ -155,10 +155,16 @@ export const startInterview = mutation({
 
     if (existingInterview) {
       // Allow resuming if same candidate and interview is in_progress
-      if (existingInterview.status === "in_progress" && 
-          existingInterview.candidateEmail === args.candidateEmail) {
-        // Resume existing interview
-        return existingInterview._id;
+      if (existingInterview.status === "in_progress") {
+        // CRITICAL: Only allow resuming if the email matches
+        // This prevents one candidate from hijacking another's interview
+        if (existingInterview.candidateEmail === args.candidateEmail) {
+          // Resume existing interview
+          return existingInterview._id;
+        } else {
+          // Different candidate trying to use an in_progress interview
+          throw new Error("This interview link is already in use by another candidate. Please contact the hiring team for a new link.");
+        }
       }
       
       if (existingInterview.status !== "pending") {
@@ -166,6 +172,13 @@ export const startInterview = mutation({
           throw new Error("This interview has already been completed");
         }
         throw new Error("This interview link has already been used. Please contact the hiring team for a new link.");
+      }
+      
+      // Only allow reassigning a pending interview if no candidate email is set
+      // OR if the email matches (same candidate retrying)
+      if (existingInterview.candidateEmail && 
+          existingInterview.candidateEmail !== args.candidateEmail) {
+        throw new Error("This interview link belongs to a different candidate. Please contact the hiring team for a new link.");
       }
       
       const jobProfile = await ctx.db.get(existingInterview.jobProfileId);
@@ -409,5 +422,69 @@ export const markAnalyzed = internalMutation({
     await ctx.db.patch(args.interviewId, {
       status: "analyzed",
     });
+  },
+});
+
+export const deleteInterview = mutation({
+  args: { interviewId: v.id("interviews") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Not authenticated");
+    }
+
+    const interview = await ctx.db.get(args.interviewId);
+    if (!interview) {
+      throw new Error("Interview not found");
+    }
+
+    if (interview.interviewerId !== userId) {
+      throw new Error("Not authorized");
+    }
+
+    // Delete all responses and their video files
+    const responses = await ctx.db
+      .query("responses")
+      .withIndex("by_interview", (q) => q.eq("interviewId", args.interviewId))
+      .collect();
+
+    for (const response of responses) {
+      // Delete single video file (legacy)
+      if (response.videoStorageId) {
+        await ctx.storage.delete(response.videoStorageId);
+      }
+      // Delete chunked video files (new)
+      if (response.videoChunkIds) {
+        for (const chunkId of response.videoChunkIds) {
+          await ctx.storage.delete(chunkId);
+        }
+      }
+      // Delete response record
+      await ctx.db.delete(response._id);
+    }
+
+    // Delete video chunks (temporary storage)
+    const videoChunks = await ctx.db
+      .query("videoChunks")
+      .withIndex("by_interview_question", (q) => q.eq("interviewId", args.interviewId))
+      .collect();
+
+    for (const chunk of videoChunks) {
+      await ctx.storage.delete(chunk.storageId);
+      await ctx.db.delete(chunk._id);
+    }
+
+    // Delete analysis
+    const analysis = await ctx.db
+      .query("analyses")
+      .withIndex("by_interview", (q) => q.eq("interviewId", args.interviewId))
+      .first();
+
+    if (analysis) {
+      await ctx.db.delete(analysis._id);
+    }
+
+    // Delete the interview
+    await ctx.db.delete(args.interviewId);
   },
 });

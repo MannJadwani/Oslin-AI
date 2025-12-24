@@ -4,18 +4,23 @@ import { Id } from "../../convex/_generated/dataModel";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, AlertTriangle, XCircle, User, Mail, Calendar, PlayCircle, FileText, Flag, RefreshCw, Briefcase, Clock, Sparkles } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { CheckCircle2, AlertTriangle, XCircle, User, Mail, Calendar, PlayCircle, FileText, Flag, RefreshCw, Briefcase, Clock, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ChunkedVideoPlayer } from "./ChunkedVideoPlayer";
+import { useState } from "react";
 
 interface InterviewDetailProps {
   interviewId: Id<"interviews">;
+  onDelete?: () => void;
 }
 
-export function InterviewDetail({ interviewId }: InterviewDetailProps) {
+export function InterviewDetail({ interviewId, onDelete }: InterviewDetailProps) {
   const data = useQuery(api.interviews.get, { id: interviewId });
   const endInterview = useMutation(api.interviews.endInterview);
   const retryAnalysis = useMutation(api.ai.requestAnalysis);
+  const deleteInterview = useMutation(api.interviews.deleteInterview);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const handleEndInterview = async () => {
     try {
@@ -33,6 +38,28 @@ export function InterviewDetail({ interviewId }: InterviewDetailProps) {
       toast.success("Analysis requested. Check back in a moment.");
     } catch (error) {
       toast.error("Failed to request analysis retry.");
+    }
+  };
+
+  const handleDeleteClick = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      await deleteInterview({ interviewId });
+      toast.success("Interview deleted successfully");
+      setDeleteDialogOpen(false);
+      // Call onDelete callback if provided (to close detail view)
+      if (onDelete) {
+        onDelete();
+      } else {
+        // Fallback: reload the page
+        window.location.reload();
+      }
+    } catch (error) {
+      toast.error("Failed to delete interview");
+      console.error(error);
     }
   };
 
@@ -112,6 +139,9 @@ export function InterviewDetail({ interviewId }: InterviewDetailProps) {
                             <RefreshCw className="w-4 h-4 mr-2" /> Retry Analysis
                         </Button>
                     )}
+                    <Button size="sm" variant="outline" onClick={handleDeleteClick} className="rounded-full h-10 px-5 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300 transition-all">
+                            <Trash2 className="w-4 h-4 mr-2" /> Delete
+                        </Button>
                 </div>
             </div>
         </CardHeader>
@@ -330,6 +360,32 @@ export function InterviewDetail({ interviewId }: InterviewDetailProps) {
             </CardContent>
         </Card>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Delete Interview</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this interview? This action cannot be undone. All responses, videos, and analysis data will be permanently deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

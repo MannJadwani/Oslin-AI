@@ -27,7 +27,70 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [interviewId, setInterviewId] = useState<Id<"interviews"> | null>(null);
+  
+  // Load interviewId from localStorage on mount
+  const getStoredInterviewId = (): Id<"interviews"> | null => {
+    try {
+      const stored = localStorage.getItem(`interview_${linkId}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Check if it's for the same linkId
+        if (parsed.linkId === linkId && parsed.interviewId) {
+          // Check expiration (7 days = 7 * 24 * 60 * 60 * 1000 ms)
+          const EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+          const now = Date.now();
+          const storedTime = parsed.timestamp || 0;
+          
+          if (now - storedTime > EXPIRATION_MS) {
+            // Expired - clear it
+            console.log("Stored interviewId has expired, clearing localStorage");
+            localStorage.removeItem(`interview_${linkId}`);
+            return null;
+          }
+          
+          return parsed.interviewId as Id<"interviews">;
+        }
+      }
+    } catch (error) {
+      console.error("Error reading stored interviewId:", error);
+      // Clear corrupted data
+      try {
+        localStorage.removeItem(`interview_${linkId}`);
+      } catch (e) {
+        // Ignore cleanup errors
+      }
+    }
+    return null;
+  };
+
+  const [interviewIdState, setInterviewIdState] = useState<Id<"interviews"> | null>(getStoredInterviewId);
+  
+  // Wrapper to persist interviewId to localStorage
+  const setInterviewId = (id: Id<"interviews"> | null) => {
+    setInterviewIdState(id);
+    if (id) {
+      try {
+        localStorage.setItem(`interview_${linkId}`, JSON.stringify({
+          interviewId: id,
+          linkId: linkId,
+          timestamp: Date.now(),
+        }));
+      } catch (error) {
+        console.error("Error saving interviewId to localStorage:", error);
+      }
+    } else {
+      // Clear localStorage when interviewId is cleared
+      try {
+        localStorage.removeItem(`interview_${linkId}`);
+      } catch (error) {
+        console.error("Error clearing interviewId from localStorage:", error);
+      }
+    }
+  };
+
+  // Use interviewIdState for all references
+  const interviewId = interviewIdState;
+  
   const [hasPermissions, setHasPermissions] = useState(false);
   const [intermissionTime, setIntermissionTime] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -35,6 +98,7 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
   const [isStarting, setIsStarting] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
   const isStoppingRef = useRef(false);
+  const isCompletingRef = useRef(false);
   const [showTimerCenter, setShowTimerCenter] = useState(false);
   const [showElaborateModal, setShowElaborateModal] = useState(false);
   const [timeLimitExtended, setTimeLimitExtended] = useState(false);
@@ -46,6 +110,37 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const intermissionTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup expired interview entries from localStorage on mount
+  useEffect(() => {
+    try {
+      const EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+      const now = Date.now();
+      
+      // Check all localStorage keys that start with "interview_"
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("interview_")) {
+          try {
+            const stored = localStorage.getItem(key);
+            if (stored) {
+              const parsed = JSON.parse(stored);
+              if (parsed.timestamp && (now - parsed.timestamp > EXPIRATION_MS)) {
+                // Expired - remove it
+                localStorage.removeItem(key);
+              }
+            }
+          } catch (e) {
+            // Corrupted data - remove it
+            localStorage.removeItem(key);
+          }
+        }
+      }
+    } catch (error) {
+      // Ignore cleanup errors
+      console.error("Error cleaning up expired localStorage entries:", error);
+    }
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -61,13 +156,59 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
     };
   }, []);
 
-  // Pre-fill if it's an existing invite
+  // Validate stored interviewId on mount and when data changes
   useEffect(() => {
-    if (data?.interview) {
+    const storedId = getStoredInterviewId();
+    
+    if (storedId && data?.interview) {
+      // Verify the stored interviewId matches the one from the backend
+      if (data.interview._id === storedId) {
+        // Valid match - use it (already set in state, just verify)
+        if (interviewIdState !== storedId) {
+          setInterviewIdState(storedId);
+        }
+        
+        // Pre-fill candidate info
         if (data.interview.candidateName) setCandidateName(data.interview.candidateName);
         if (data.interview.candidateEmail) setCandidateEmail(data.interview.candidateEmail);
+        
+        // If interview is in_progress, resume it
+        if (data.interview.status === "in_progress") {
+          // Auto-advance to recording if we have permissions
+          if (hasPermissions && step !== "recording") {
+            setStep("recording");
+          }
+        } else if (data.interview.status === "completed" || data.interview.status === "analyzed") {
+          // Interview is done, clear localStorage and show complete screen
+          setInterviewId(null);
+          if (step !== "complete") {
+            setStep("complete");
+          }
+        }
+      } else {
+        // Stored ID doesn't match - clear it (might be from a different session)
+        console.warn("Stored interviewId doesn't match backend, clearing localStorage");
+        setInterviewId(null);
+      }
+    } else if (data?.interview && !storedId) {
+      // No stored ID, but backend has an interview - use it
+      if (data.interview.candidateName) setCandidateName(data.interview.candidateName);
+      if (data.interview.candidateEmail) setCandidateEmail(data.interview.candidateEmail);
+      
+      if (data.interview.status === "in_progress" && data.interview._id) {
+        setInterviewId(data.interview._id);
+        if (hasPermissions && step !== "recording") {
+          setStep("recording");
+        }
+      }
+    } else if (!data?.interview && storedId) {
+      // We have a stored ID but backend doesn't return an interview
+      // This could mean the interview was deleted or linkId changed
+      // Clear the stored ID
+      console.warn("Stored interviewId found but no interview in backend, clearing localStorage");
+      setInterviewId(null);
     }
-  }, [data]);
+  }, [data, hasPermissions, linkId, interviewIdState, step]);
 
   // Show timer in center when question starts, then move to top-right after 3 seconds
   useEffect(() => {
@@ -146,6 +287,28 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
     setIsStarting(true);
 
     try {
+      // If we already have an interviewId from a resumed interview, verify it matches
+      if (interviewId && data?.interview) {
+        // Check if the candidate email matches the existing interview
+        if (data.interview.candidateEmail && data.interview.candidateEmail !== candidateEmail) {
+          toast.error("This interview link belongs to a different candidate. Please use your own interview link.");
+          setIsStarting(false);
+          return;
+        }
+        // If email matches and interview is in_progress, we can proceed
+        if (data.interview.status === "in_progress") {
+          // Request permissions and continue
+          const permissionsGranted = await requestPermissions();
+          if (!permissionsGranted) {
+            setIsStarting(false);
+            return;
+          }
+          setStep("recording");
+          setIsStarting(false);
+          return;
+        }
+      }
+
       // Request permissions FIRST before creating interview
       const permissionsGranted = await requestPermissions();
       if (!permissionsGranted) {
@@ -164,8 +327,10 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
     } catch (error) {
       console.error("Error starting interview:", error);
       if (error instanceof Error) {
-        if (error.message.includes("Interview already started")) {
-          toast.error("This interview has already been started or completed.");
+        if (error.message.includes("Interview already started") || 
+            error.message.includes("already been used") ||
+            error.message.includes("already been completed")) {
+          toast.error("This interview link has already been used. Please contact the hiring team for a new link.");
         } else if (error.message.includes("Invalid or expired")) {
           toast.error("This interview link is invalid or has expired.");
         } else {
@@ -183,7 +348,7 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
     } finally {
       setIsStarting(false);
     }
-  }, [candidateName, candidateEmail, isStarting, linkId, startInterview]);
+  }, [candidateName, candidateEmail, isStarting, linkId, startInterview, interviewId, data]);
 
   const startRecording = () => {
     if (!streamRef.current) {
@@ -246,7 +411,14 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
       }, 1000);
   };
 
-  const handleComplete = async () => {
+  const handleComplete = useCallback(async () => {
+    // Prevent multiple calls
+    if (isCompletingRef.current) {
+      console.log("Interview completion already in progress");
+      return;
+    }
+    isCompletingRef.current = true;
+
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
     }
@@ -255,12 +427,22 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
       try {
         await finalizeInterview({ interviewId });
         toast.success("Interview completed! Responses submitted.");
+        // Clear localStorage when interview is completed
+        setInterviewId(null);
+        setStep("complete");
       } catch (error) {
         console.error("Failed to finalize interview", error);
+        toast.error("Failed to complete interview. Please try again or contact support.");
+        // Don't set step to "complete" if finalization failed
+        // Keep user on current step so they can retry
+        isCompletingRef.current = false; // Allow retry
       }
+    } else {
+      // If no interviewId, still show complete screen but log error
+      console.error("Cannot complete interview: interviewId is missing");
+      setStep("complete");
     }
-    setStep("complete");
-  };
+  }, [interviewId, finalizeInterview]);
 
   // Define stopRecordingAndAdvance BEFORE the functions that depend on it
   const stopRecordingAndAdvance = useCallback(async () => {
@@ -275,9 +457,11 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
     setIsRecording(false);
     
     const questionIndex = currentQuestionIndex;
-    const isLastQuestion = data?.jobProfile && questionIndex >= data.jobProfile.questions.length - 1;
     const currentQuestion = data?.jobProfile?.questions[questionIndex];
     const duration = recordingTime;
+    // Calculate isLastQuestion inside the callback to use fresh data
+    const totalQuestions = data?.jobProfile?.questions.length ?? 0;
+    const isLastQuestion = questionIndex >= totalQuestions - 1;
     
     // Immediately transition UI
     if (isLastQuestion) {
@@ -321,6 +505,7 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
                 videoStorageId: storageId,
                 duration,
                 attemptNumber: 1,
+                candidateEmail: candidateEmail, // Pass email for verification
               });
               success = true;
             } catch (error) {
@@ -343,8 +528,20 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
           return newCount;
         });
         
+        // Check again if this is the last question (using fresh data)
+        // Even if upload failed, we should still try to complete the interview
+        // to mark it as completed in the backend
         if (isLastQuestion) {
-          await handleComplete();
+          // Wait a bit to ensure all uploads are processed, then complete
+          setTimeout(async () => {
+            try {
+              await handleComplete();
+            } catch (error) {
+              console.error("Error completing interview:", error);
+              // If completion fails, show error but don't leave user stuck
+              toast.error("Interview may not have been marked as complete. Please contact support.");
+            }
+          }, 500);
         }
         
         isStoppingRef.current = false;
@@ -353,7 +550,7 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
     };
     
     mediaRecorder.stop();
-  }, [currentQuestionIndex, data?.jobProfile, interviewId, recordingTime, generateUploadUrl, saveResponse, finalizeInterview]);
+  }, [currentQuestionIndex, data?.jobProfile, interviewId, recordingTime, generateUploadUrl, saveResponse, handleComplete]);
 
   const handleTimeUp = useCallback(() => {
       // Prevent multiple calls
@@ -608,7 +805,7 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
                   <Mail className="w-4 h-4 text-indigo-600" />
                   {candidateEmail}
                 </p>
-              </div>
+          </div>
               
               <p className="text-slate-500 text-sm leading-relaxed">
                 The hiring team will review your responses and reach out regarding next steps. Thank you for your time!
@@ -638,7 +835,7 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
                     <p className="text-sm text-slate-600">Common questions about this position</p>
                   </div>
                 </div>
-              </CardHeader>
+          </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-6">
                   {faqItems.map((item, idx) => (
@@ -656,8 +853,8 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
+          </CardContent>
+        </Card>
           )}
         </div>
       </div>
@@ -708,7 +905,7 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
               <span className="font-mono font-semibold text-sm">
                 Time left: {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, "0")}
               </span>
-            </div>
+                </div>
             )}
           </div>
 
@@ -796,12 +993,12 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
                         </>
                       )}
                     </Button>
-                  </div>
+                            </div>
                             
                   <p className="text-white/40 text-xs">
                     {hasElaborateText ? "Need more context? Click 'Please Elaborate' for additional details." : "Finished early? Click the button above to continue"}
-                  </p>
-                </div>
+                            </p>
+                        </div>
                     )}
                 </div>
           )}

@@ -1,4 +1,4 @@
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useState, useMemo } from "react";
 import { InterviewDetail } from "./InterviewDetail";
@@ -7,17 +7,22 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Calendar, User, Search, AlertCircle, CheckCircle2, Clock, ChevronRight } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ArrowLeft, Calendar, User, Search, AlertCircle, CheckCircle2, Clock, ChevronRight, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 type SortKey = "date" | "score" | "title";
 
 export function InterviewsList() {
   const interviews = useQuery(api.interviews.listAll);
+  const deleteInterview = useMutation(api.interviews.deleteInterview);
   const [selectedInterview, setSelectedInterview] = useState<Id<"interviews"> | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [jobFilter, setJobFilter] = useState<string>("all");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [interviewToDelete, setInterviewToDelete] = useState<Id<"interviews"> | null>(null);
 
   // Extract unique job titles for filter
   const uniqueJobTitles = useMemo(() => {
@@ -96,7 +101,7 @@ export function InterviewsList() {
           <ArrowLeft className="w-4 h-4" />
           Back to candidates
         </Button>
-        <InterviewDetail interviewId={selectedInterview} />
+        <InterviewDetail interviewId={selectedInterview} onDelete={() => setSelectedInterview(null)} />
       </div>
     );
   }
@@ -110,6 +115,30 @@ export function InterviewsList() {
           default: return { class: "bg-slate-100 text-slate-700", icon: AlertCircle, label: status };
     }
   }
+
+  const handleDeleteClick = (e: React.MouseEvent, interviewId: Id<"interviews">) => {
+    e.stopPropagation(); // Prevent row click
+    setInterviewToDelete(interviewId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!interviewToDelete) return;
+    
+    try {
+      await deleteInterview({ interviewId: interviewToDelete });
+      toast.success("Interview deleted successfully");
+      setDeleteDialogOpen(false);
+      setInterviewToDelete(null);
+      // If the deleted interview was selected, go back to list
+      if (selectedInterview === interviewToDelete) {
+        setSelectedInterview(null);
+      }
+    } catch (error) {
+      toast.error("Failed to delete interview");
+      console.error(error);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -192,7 +221,8 @@ export function InterviewsList() {
             <div className="col-span-3">Role</div>
             <div className="col-span-2">Status</div>
             <div className="col-span-1 text-center">Score</div>
-            <div className="col-span-2 text-right">Date</div>
+            <div className="col-span-1 text-right">Date</div>
+            <div className="col-span-1"></div>
           </div>
           
           {/* Table Body */}
@@ -245,11 +275,23 @@ export function InterviewsList() {
                     </div>
                     
                     {/* Date */}
-                    <div className="col-span-2 flex items-center justify-end gap-2">
+                    <div className="col-span-1 flex items-center justify-end gap-2">
                       <div className="flex items-center gap-1.5 text-sm text-slate-500">
                         <Calendar className="w-4 h-4" />
                         {interview.startedAt ? new Date(interview.startedAt).toLocaleDateString() : "—"}
                       </div>
+                    </div>
+                    
+                    {/* Actions */}
+                    <div className="col-span-1 flex items-center justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={(e) => handleDeleteClick(e, interview._id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                       <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-600 transition-colors" />
                     </div>
                   </div>
@@ -263,6 +305,35 @@ export function InterviewsList() {
           </div>
       </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Delete Interview</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this interview? This action cannot be undone. All responses, videos, and analysis data will be permanently deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setInterviewToDelete(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

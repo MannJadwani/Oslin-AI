@@ -128,11 +128,24 @@ export const saveResponse = mutation({
     videoStorageId: v.id("_storage"),
     duration: v.number(),
     attemptNumber: v.number(),
+    candidateEmail: v.optional(v.string()), // Optional verification
   },
   handler: async (ctx, args) => {
     const interview = await ctx.db.get(args.interviewId);
     if (!interview) {
       throw new Error("Interview not found");
+    }
+
+    // Verify interview is in a valid state for saving responses
+    if (interview.status !== "in_progress") {
+      throw new Error(`Cannot save response: interview is ${interview.status}, not in_progress`);
+    }
+
+    // Optional: Verify candidate email matches if provided
+    // This prevents cross-contamination if somehow the wrong interviewId is used
+    if (args.candidateEmail && interview.candidateEmail && 
+        args.candidateEmail !== interview.candidateEmail) {
+      throw new Error("Candidate email mismatch: response cannot be saved to this interview");
     }
 
     // Delete previous attempts for this question if retaking
