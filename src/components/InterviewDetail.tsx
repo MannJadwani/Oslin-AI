@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CheckCircle2, AlertTriangle, XCircle, User, Mail, Calendar, PlayCircle, FileText, Flag, RefreshCw, Briefcase, Clock, Sparkles, Trash2 } from "lucide-react";
+import { CheckCircle2, AlertTriangle, AlertCircle, XCircle, User, Mail, Calendar, PlayCircle, FileText, Flag, RefreshCw, Briefcase, Clock, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ChunkedVideoPlayer } from "./ChunkedVideoPlayer";
 import { useState } from "react";
@@ -363,23 +363,34 @@ export function InterviewDetail({ interviewId, onDelete }: InterviewDetailProps)
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Delete Interview</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this interview? This action cannot be undone. All responses, videos, and analysis data will be permanently deleted.
-            </DialogDescription>
+        <DialogContent className="sm:max-w-[500px] rounded-2xl border-0 shadow-2xl p-0 gap-0 bg-white">
+          <DialogHeader className="p-6 pb-4">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 flex-shrink-0">
+                <AlertCircle className="h-6 w-6 text-red-600" />
+              </div>
+              <div className="flex-1 space-y-2">
+                <DialogTitle className="text-xl font-semibold text-slate-900 leading-tight">
+                  Delete Interview
+                </DialogTitle>
+                <DialogDescription className="text-sm text-slate-600 leading-relaxed">
+                  Are you sure you want to delete this interview? This action cannot be undone. All responses, videos, and analysis data will be permanently deleted.
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter className="px-6 py-4 bg-slate-50 border-t border-slate-100 rounded-b-2xl gap-3">
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
+              className="flex-1 sm:flex-initial sm:min-w-[100px] border-slate-200 hover:bg-slate-100"
             >
               Cancel
             </Button>
             <Button
               variant="destructive"
               onClick={handleDeleteConfirm}
+              className="flex-1 sm:flex-initial sm:min-w-[100px] bg-red-600 hover:bg-red-700 text-white"
             >
               Delete
             </Button>

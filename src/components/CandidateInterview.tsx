@@ -158,6 +158,11 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
 
   // Validate stored interviewId on mount and when data changes
   useEffect(() => {
+    // Don't do anything while data is still loading
+    if (data === undefined) {
+      return;
+    }
+
     const storedId = getStoredInterviewId();
     
     if (storedId && data?.interview) {
@@ -187,7 +192,6 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
         }
       } else {
         // Stored ID doesn't match - clear it (might be from a different session)
-        console.warn("Stored interviewId doesn't match backend, clearing localStorage");
         setInterviewId(null);
       }
     } else if (data?.interview && !storedId) {
@@ -201,11 +205,15 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
           setStep("recording");
         }
       }
-    } else if (!data?.interview && storedId) {
-      // We have a stored ID but backend doesn't return an interview
-      // This could mean the interview was deleted or linkId changed
-      // Clear the stored ID
-      console.warn("Stored interviewId found but no interview in backend, clearing localStorage");
+    } else if (data && !data.interview && storedId) {
+      // Data has loaded, but no interview found
+      // This means it's a public link (public links have interview: null)
+      // For public links, we keep the stored ID - it might be for a different interview
+      // and we'll validate it when the user starts a new interview
+      // No need to clear here
+    } else if (data === null && storedId) {
+      // Invalid linkId entirely (not an invite link, not a public link)
+      // Clear stored data
       setInterviewId(null);
     }
   }, [data, hasPermissions, linkId, interviewIdState, step]);
