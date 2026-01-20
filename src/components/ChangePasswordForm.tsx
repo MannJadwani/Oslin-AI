@@ -25,11 +25,6 @@ export function ChangePasswordForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user?.email) {
-      toast.error("User email not found");
-      return;
-    }
-
     if (newPassword !== confirmPassword) {
       toast.error("New passwords do not match");
       return;
@@ -43,7 +38,6 @@ export function ChangePasswordForm() {
     setIsLoading(true);
     try {
       await changePassword({
-        email: user.email,
         currentPassword,
         newPassword,
       });

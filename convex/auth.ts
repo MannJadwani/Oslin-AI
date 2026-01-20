@@ -8,6 +8,7 @@ import { Password } from "@convex-dev/auth/providers/Password";
 import { Anonymous } from "@convex-dev/auth/providers/Anonymous";
 import { query, action } from "./_generated/server";
 import { v } from "convex/values";
+import { api } from "./_generated/api";
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [Password, Anonymous],
@@ -27,22 +28,33 @@ export const loggedInUser = query({
   },
 });
 
+export const getUserById = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    return await ctx.db.get(userId);
+  },
+});
+
 export const changePassword = action({
   args: {
-    email: v.string(),
     currentPassword: v.string(),
     newPassword: v.string(),
   },
-  handler: async (ctx, { email, currentPassword, newPassword }) => {
+  handler: async (ctx, { currentPassword, newPassword }) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
       throw new Error("Not authenticated");
     }
 
+    const user = await ctx.runQuery(api.auth.getUserById, { userId });
+    if (!user || !user.email) {
+      throw new Error("User email not found");
+    }
+
     try {
       await retrieveAccount(ctx, {
         provider: "password",
-        account: { id: email, secret: currentPassword },
+        account: { id: user.email, secret: currentPassword },
       });
     } catch {
       throw new Error("Current password is incorrect");
@@ -50,7 +62,7 @@ export const changePassword = action({
 
     await modifyAccountCredentials(ctx, {
       provider: "password",
-      account: { id: email, secret: newPassword },
+      account: { id: user.email, secret: newPassword },
     });
   },
 });
