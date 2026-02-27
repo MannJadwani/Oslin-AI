@@ -5,6 +5,8 @@ import { InterviewsList } from "./InterviewsList";
 import { IntroQuestionsManager } from "./IntroQuestionsManager";
 import { Documentation } from "./documentation/Documentation";
 import { ChangePasswordForm } from "./ChangePasswordForm";
+import { BillingDashboard } from "./BillingDashboard";
+import { AdminDashboard } from "./AdminDashboard";
 import { Id } from "../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,6 +58,14 @@ export function InterviewerDashboard() {
 
   if (currentView === "documentation") {
     return <Documentation />;
+  }
+
+  if (currentView === "billing") {
+    return <BillingDashboard />;
+  }
+
+  if (currentView === "admin") {
+    return <AdminDashboard />;
   }
 
   return (

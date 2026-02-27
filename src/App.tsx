@@ -1,5 +1,4 @@
-import { Authenticated, Unauthenticated, useQuery } from "convex/react";
-import { api } from "../convex/_generated/api";
+import { Authenticated, Unauthenticated, useConvexAuth } from "convex/react";
 import { LandingPage } from "./components/LandingPage";
 import { CandidateInterview } from "./components/CandidateInterview";
 import { useState, useEffect } from "react";
@@ -34,9 +33,9 @@ export default function App() {
 }
 
 function Content() {
-  const loggedInUser = useQuery(api.auth.loggedInUser);
+  const { isLoading } = useConvexAuth();
 
-  if (loggedInUser === undefined) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex justify-center items-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

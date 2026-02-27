@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
+import { settleFinalizeChargeForInterview } from "./billing";
 
 // Video response storage - supports both single file (legacy) and chunked uploads
 
@@ -215,6 +216,12 @@ export const finalizeInterview = mutation({
       status: "completed",
       completedAt: Date.now(),
     });
+
+    await settleFinalizeChargeForInterview(
+      ctx,
+      interview.interviewerId,
+      args.interviewId,
+    );
 
     // Trigger AI analysis
     await ctx.scheduler.runAfter(0, internal.ai.analyzeInterview, {

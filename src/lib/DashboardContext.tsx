@@ -1,6 +1,13 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 
-type DashboardView = "dashboard" | "interviews" | "candidates" | "settings";
+type DashboardView =
+  | "dashboard"
+  | "interviews"
+  | "candidates"
+  | "settings"
+  | "documentation"
+  | "billing"
+  | "admin";
 
 interface DashboardContextType {
   currentView: DashboardView;
@@ -26,8 +33,6 @@ export function useDashboard() {
   }
   return context;
 }
-
-
 
 
 

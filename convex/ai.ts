@@ -3,6 +3,8 @@ import { internalAction, internalMutation, internalQuery, mutation } from "./_ge
 import { internal } from "./_generated/api";
 import OpenAI from "openai";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { reserveAnalysisRetryForInterview } from "./billing";
+import type { Id } from "./_generated/dataModel";
 
 // Model configuration - using latest OpenAI models (2025)
 const TRANSCRIPTION_MODEL = "gpt-4o-mini-transcribe"; // Latest transcription model, better than Whisper
@@ -42,97 +44,124 @@ export const requestAnalysis = mutation({
       throw new Error("Interview must be completed to be analyzed");
     }
 
+    const attemptId = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    await reserveAnalysisRetryForInterview(
+      ctx,
+      interview.interviewerId,
+      args.interviewId,
+      attemptId,
+    );
+
     // Trigger AI analysis
     await ctx.scheduler.runAfter(0, internal.ai.analyzeInterview, {
       interviewId: args.interviewId,
+      attemptId,
     });
   },
 });
 
 export const analyzeInterview = internalAction({
-  args: { interviewId: v.id("interviews") },
+  args: {
+    interviewId: v.id("interviews"),
+    attemptId: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
     const openai = getOpenAIClient();
-    console.log(`Starting analysis for interview: ${args.interviewId}`);
-    
-    // Get interview data
-    const data = await ctx.runQuery(internal.ai.getInterviewData, {
-      interviewId: args.interviewId,
-    });
+    let interviewerId: Id<"users"> | null = null;
 
-    if (!data) {
-      throw new Error("Interview not found");
-    }
+    try {
+      console.log(`Starting analysis for interview: ${args.interviewId}`);
 
-    const { interview, jobProfile, responses } = data;
-    console.log(`Found ${responses.length} responses to transcribe`);
+      // Get interview data
+      const data = await ctx.runQuery(internal.ai.getInterviewData, {
+        interviewId: args.interviewId,
+      });
 
-    // Transcribe all videos first using GPT-4o transcription
-    const transcripts: Record<string, string> = {};
-    
-    for (const response of responses) {
-      try {
-        if (response.transcript) {
-            console.log(`Using existing transcript for question ${response.questionId}`);
+      if (!data) {
+        throw new Error("Interview not found");
+      }
+
+      const { interview, jobProfile, responses } = data;
+      interviewerId = interview.interviewerId;
+      console.log(`Found ${responses.length} responses to transcribe`);
+
+      // Transcribe all videos first using GPT-4o transcription
+      const transcripts: Record<string, string> = {};
+
+      for (const response of responses) {
+        try {
+          if (response.transcript) {
+            console.log(
+              `Using existing transcript for question ${response.questionId}`,
+            );
             transcripts[response.questionId] = response.transcript;
             continue;
-        }
+          }
 
-        console.log(`Transcribing response for question: ${response.questionId}`);
-        
-        let videoFile: Blob | null = null;
-        
-        // Handle chunked videos (new)
-        if (response.videoChunkIds && response.videoChunkIds.length > 0) {
-          console.log(`Combining ${response.videoChunkIds.length} chunks for question ${response.questionId}`);
-          const chunks: Blob[] = [];
-          for (const chunkId of response.videoChunkIds) {
-            const chunk = await ctx.storage.get(chunkId);
-            if (chunk) {
-              chunks.push(chunk);
+          console.log(`Transcribing response for question: ${response.questionId}`);
+
+          let videoFile: Blob | null = null;
+
+          // Handle chunked videos (new)
+          if (response.videoChunkIds && response.videoChunkIds.length > 0) {
+            console.log(
+              `Combining ${response.videoChunkIds.length} chunks for question ${response.questionId}`,
+            );
+            const chunks: Blob[] = [];
+            for (const chunkId of response.videoChunkIds) {
+              const chunk = await ctx.storage.get(chunkId);
+              if (chunk) {
+                chunks.push(chunk);
+              }
+            }
+            if (chunks.length > 0) {
+              videoFile = new Blob(chunks, { type: "video/webm" });
             }
           }
-          if (chunks.length > 0) {
-            videoFile = new Blob(chunks, { type: "video/webm" });
+          // Handle single file (legacy)
+          else if (response.videoStorageId) {
+            videoFile = await ctx.storage.get(response.videoStorageId);
           }
-        } 
-        // Handle single file (legacy)
-        else if (response.videoStorageId) {
-          videoFile = await ctx.storage.get(response.videoStorageId);
+
+          if (!videoFile) {
+            console.log(`No video file found for response: ${response._id}`);
+            continue;
+          }
+
+          // Create file for transcription API
+          const file = new File([videoFile], "video.webm", {
+            type: "video/webm",
+          });
+
+          // Use the latest GPT-4o transcription model
+          const transcription = await openai.audio.transcriptions.create({
+            file: file,
+            model: TRANSCRIPTION_MODEL,
+          });
+
+          console.log(
+            `Transcription successful for question ${response.questionId}: ${transcription.text.substring(0, 100)}...`,
+          );
+          transcripts[response.questionId] = transcription.text;
+
+          // Save transcript
+          await ctx.runMutation(internal.ai.saveTranscript, {
+            responseId: response._id,
+            transcript: transcription.text,
+          });
+        } catch (error) {
+          console.error(
+            `Transcription error for question ${response.questionId}:`,
+            error,
+          );
+          transcripts[response.questionId] = "[Transcription failed]";
         }
-        
-        if (!videoFile) {
-          console.log(`No video file found for response: ${response._id}`);
-          continue;
-        }
-
-        // Create file for transcription API
-        const file = new File([videoFile], "video.webm", { type: "video/webm" });
-
-        // Use the latest GPT-4o transcription model
-        const transcription = await openai.audio.transcriptions.create({
-          file: file,
-          model: TRANSCRIPTION_MODEL,
-        });
-
-        console.log(`Transcription successful for question ${response.questionId}: ${transcription.text.substring(0, 100)}...`);
-        transcripts[response.questionId] = transcription.text;
-
-        // Save transcript
-        await ctx.runMutation(internal.ai.saveTranscript, {
-          responseId: response._id,
-          transcript: transcription.text,
-        });
-      } catch (error) {
-        console.error(`Transcription error for question ${response.questionId}:`, error);
-        transcripts[response.questionId] = "[Transcription failed]";
       }
-    }
 
-    console.log(`Transcription complete. Analyzing with ${ANALYSIS_MODEL}...`);
+      console.log(`Transcription complete. Analyzing with ${ANALYSIS_MODEL}...`);
 
-    // Analyze with GPT-4o (flagship model)
-    const analysisPrompt = `You are an expert HR analyst. Analyze this job interview based on the following information:
+      // Analyze with GPT-4o (flagship model)
+      const analysisPrompt = `You are an expert HR analyst. Analyze this job interview based on the following information:
 
 Job Title: ${jobProfile.title}
 Job Description: ${jobProfile.description}
@@ -163,40 +192,65 @@ Provide a comprehensive analysis in the following JSON format:
   ]
 }`;
 
-    const completion = await openai.chat.completions.create({
-      model: ANALYSIS_MODEL,
-      messages: [{ role: "user", content: analysisPrompt }],
-      response_format: { type: "json_object" },
-    });
+      const completion = await openai.chat.completions.create({
+        model: ANALYSIS_MODEL,
+        messages: [{ role: "user", content: analysisPrompt }],
+        response_format: { type: "json_object" },
+      });
 
-    console.log(`Analysis complete. Overall score: ${JSON.parse(completion.choices[0].message.content || "{}").overallScore}`);
+      console.log(
+        `Analysis complete. Overall score: ${JSON.parse(completion.choices[0].message.content || "{}").overallScore}`,
+      );
 
-    const analysisText = completion.choices[0].message.content;
-    if (!analysisText) {
-      throw new Error("No analysis generated");
+      const analysisText = completion.choices[0].message.content;
+      if (!analysisText) {
+        throw new Error("No analysis generated");
+      }
+
+      const analysis = JSON.parse(analysisText);
+
+      // Save analysis
+      await ctx.runMutation(internal.ai.saveAnalysis, {
+        interviewId: args.interviewId,
+        analysis: {
+          overallScore: analysis.overallScore,
+          strengths: analysis.strengths,
+          weaknesses: analysis.weaknesses,
+          communicationStyle: analysis.communicationStyle,
+          confidenceLevel: analysis.confidenceLevel,
+          skillAlignment: analysis.skillAlignment,
+          redFlags: analysis.redFlags,
+          summary: analysis.summary,
+          questionAnalyses: analysis.questionAnalyses,
+        },
+      });
+
+      await ctx.runMutation(internal.interviews.markAnalyzed, {
+        interviewId: args.interviewId,
+      });
+
+      if (interviewerId) {
+        await ctx.runMutation(internal.billing.settleAnalysisCharge, {
+          interviewerId,
+          interviewId: args.interviewId,
+          attemptId: args.attemptId,
+        });
+      }
+    } catch (error) {
+      if (interviewerId) {
+        try {
+          await ctx.runMutation(internal.billing.releaseReservation, {
+            interviewerId,
+            interviewId: args.interviewId,
+            reason: "Analysis failed before settlement",
+            attemptId: args.attemptId,
+          });
+        } catch (releaseError) {
+          console.error("Failed to release billing reservation:", releaseError);
+        }
+      }
+      throw error;
     }
-
-    const analysis = JSON.parse(analysisText);
-
-    // Save analysis
-    await ctx.runMutation(internal.ai.saveAnalysis, {
-      interviewId: args.interviewId,
-      analysis: {
-        overallScore: analysis.overallScore,
-        strengths: analysis.strengths,
-        weaknesses: analysis.weaknesses,
-        communicationStyle: analysis.communicationStyle,
-        confidenceLevel: analysis.confidenceLevel,
-        skillAlignment: analysis.skillAlignment,
-        redFlags: analysis.redFlags,
-        summary: analysis.summary,
-        questionAnalyses: analysis.questionAnalyses,
-      },
-    });
-
-    await ctx.runMutation(internal.interviews.markAnalyzed, {
-      interviewId: args.interviewId,
-    });
   },
 });
 

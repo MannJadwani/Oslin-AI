@@ -5,13 +5,12 @@ import {
   retrieveAccount,
 } from "@convex-dev/auth/server";
 import { Password } from "@convex-dev/auth/providers/Password";
-import { Anonymous } from "@convex-dev/auth/providers/Anonymous";
 import { query, action } from "./_generated/server";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
-  providers: [Password, Anonymous],
+  providers: [Password],
 });
 
 export const loggedInUser = query({

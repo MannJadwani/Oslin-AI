@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { reservePipelineAndChargeStart } from "./billing";
 
 // Keep for backward compatibility if needed, but we encourage public links
 function generateLinkId(): string {
@@ -188,6 +189,12 @@ export const startInterview = mutation({
       if (jobProfile?.shuffleQuestions && jobProfile.questions.length > 0) {
         questionOrder = shuffleArray(jobProfile.questions.map(q => q.id));
       }
+
+      await reservePipelineAndChargeStart(
+        ctx,
+        existingInterview.interviewerId,
+        existingInterview._id,
+      );
       
       await ctx.db.patch(existingInterview._id, {
         candidateName: args.candidateName,
@@ -240,6 +247,8 @@ export const startInterview = mutation({
         startedAt: Date.now(),
         questionOrder,
     });
+
+    await reservePipelineAndChargeStart(ctx, jobProfile.interviewerId, interviewId);
 
     return interviewId;
   },
