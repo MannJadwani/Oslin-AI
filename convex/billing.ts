@@ -886,6 +886,9 @@ async function handleWebhookEvent(
   if (args.provider !== "razorpay") {
     return "ignored";
   }
+  if (!isRazorpayEnabled()) {
+    return "ignored";
+  }
 
   const payload = args.payload;
 
@@ -1545,7 +1548,7 @@ export const getBillingDashboard = query({
       },
       costs: CREDIT_COSTS,
       growthPriceInr: GROWTH_PRICE_INR,
-      topupPacks: TOPUP_PACKS,
+      topupPacks: isRazorpayEnabled() ? TOPUP_PACKS : [],
       featureFlags: {
         billingEnforced: isBillingEnforced(),
         razorpayEnabled: isRazorpayEnabled(),

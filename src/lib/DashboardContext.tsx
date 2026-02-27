@@ -6,7 +6,8 @@ type DashboardView =
   | "candidates"
   | "settings"
   | "documentation"
-  | "billing";
+  | "billing"
+  | "admin";
 
 interface DashboardContextType {
   currentView: DashboardView;
@@ -32,7 +33,6 @@ export function useDashboard() {
   }
   return context;
 }
-
 
 
 

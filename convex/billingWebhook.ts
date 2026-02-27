@@ -41,6 +41,15 @@ async function sha256Hex(payload: string): Promise<string> {
 }
 
 export const handleRazorpayWebhook = httpAction(async (ctx, request) => {
+  if (process.env.RAZORPAY_ENABLED !== "true") {
+    return new Response(JSON.stringify({ ok: true, ignored: "payments_disabled" }), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+  }
+
   const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
   if (!webhookSecret) {
     return new Response("Missing webhook secret", { status: 500 });

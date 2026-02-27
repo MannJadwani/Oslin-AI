@@ -8,6 +8,7 @@ import {
   Zap,
   Wallet,
   BookOpen,
+  Shield,
 } from "lucide-react";
 import { useState } from "react";
 import { SignOutButton } from "../SignOutButton";
@@ -24,8 +25,9 @@ export function Layout({ children }: LayoutProps) {
   const { currentView, setCurrentView } = useDashboard();
   const user = useQuery(api.auth.loggedInUser);
   const billing = useQuery(api.billing.getBillingDashboard);
+  const adminContext = useQuery(api.admin.getMyAdminContext);
 
-  const navItems = [
+  const baseNavItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "interviews", label: "Interviews", icon: Video },
     { id: "candidates", label: "Candidates", icon: Users },
@@ -33,6 +35,10 @@ export function Layout({ children }: LayoutProps) {
     { id: "documentation", label: "Documentation", icon: BookOpen },
     { id: "settings", label: "Settings", icon: Settings },
   ] as const;
+
+  const navItems = adminContext?.isAdmin
+    ? [...baseNavItems, { id: "admin", label: "Admin", icon: Shield }]
+    : baseNavItems;
 
   const userInitials = user?.email 
     ? user.email.substring(0, 2).toUpperCase() 

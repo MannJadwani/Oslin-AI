@@ -206,6 +206,46 @@ const applicationTables = {
     status: v.union(v.literal("processed"), v.literal("ignored"), v.literal("failed")),
     payloadHash: v.string(),
   }).index("by_provider_event", ["provider", "eventId"]),
+
+  roles: defineTable({
+    key: v.string(),
+    label: v.string(),
+    description: v.string(),
+    createdAt: v.number(),
+  }).index("by_key", ["key"]),
+
+  userRoles: defineTable({
+    userId: v.id("users"),
+    roleId: v.id("roles"),
+    assignedAt: v.number(),
+    assignedBy: v.optional(v.id("users")),
+  })
+    .index("by_user", ["userId"])
+    .index("by_role", ["roleId"])
+    .index("by_user_role", ["userId", "roleId"]),
+
+  userAccountFlags: defineTable({
+    userId: v.id("users"),
+    isSuspended: v.boolean(),
+    reason: v.optional(v.string()),
+    updatedAt: v.number(),
+    updatedBy: v.optional(v.id("users")),
+  }).index("by_user", ["userId"]),
+
+  adminAuditLogs: defineTable({
+    actorUserId: v.id("users"),
+    action: v.string(),
+    targetType: v.string(),
+    targetId: v.string(),
+    reason: v.optional(v.string()),
+    before: v.optional(v.any()),
+    after: v.optional(v.any()),
+    metadata: v.optional(v.any()),
+    createdAt: v.number(),
+  })
+    .index("by_actor", ["actorUserId"])
+    .index("by_created_at", ["createdAt"])
+    .index("by_target", ["targetType", "targetId"]),
 };
 
 export default defineSchema({

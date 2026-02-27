@@ -83,6 +83,7 @@ export function BillingDashboard() {
 
   const account = dashboard.account;
   const balances = dashboard.balances;
+  const paymentsEnabled = dashboard.featureFlags.razorpayEnabled;
 
   const handleTopupCheckout = async (packId: string) => {
     try {
@@ -152,11 +153,17 @@ export function BillingDashboard() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Billing</h1>
           <p className="text-slate-500">
-            Manage plans, buy top-ups, and track usage transactions.
+            {paymentsEnabled
+              ? "Manage plans, buy top-ups, and track usage transactions."
+              : "Payments are disabled. Starter free plan is active."}
           </p>
         </div>
-        <Badge className="w-fit rounded-full px-3 py-1 bg-indigo-600 text-white border-0">
-          {planLabel} Plan
+        <Badge
+          className={`w-fit rounded-full px-3 py-1 border-0 ${
+            paymentsEnabled ? "bg-indigo-600 text-white" : "bg-slate-700 text-white"
+          }`}
+        >
+          {paymentsEnabled ? `${planLabel} Plan` : "Starter Plan (Free Only)"}
         </Badge>
       </div>
 
@@ -221,7 +228,11 @@ export function BillingDashboard() {
               </div>
             </div>
 
-            {account.planTier === "growth" || account.planTier === "enterprise" ? (
+            {!paymentsEnabled ? (
+              <p className="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-xl p-3">
+                Payment features are temporarily disabled. Only the free Starter plan is available.
+              </p>
+            ) : account.planTier === "growth" || account.planTier === "enterprise" ? (
               <div className="flex flex-wrap gap-3">
                 <Button
                   variant="outline"
@@ -269,13 +280,20 @@ export function BillingDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-slate-900">
               <Wallet className="w-5 h-5" />
-              Buy Top-up Credits
+              {paymentsEnabled ? "Buy Top-up Credits" : "Top-up Credits"}
             </CardTitle>
             <CardDescription>
-              Packs are consumed by earliest expiry and expire after 90 days.
+              {paymentsEnabled
+                ? "Packs are consumed by earliest expiry and expire after 90 days."
+                : "Top-ups are disabled while payments are turned off."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
+            {!paymentsEnabled && (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                Payment checkout is currently disabled.
+              </div>
+            )}
             {dashboard.topupPacks.map((pack) => (
               <div
                 key={pack.id}
