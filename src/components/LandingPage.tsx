@@ -310,7 +310,7 @@ export function LandingPage() {
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-400" />
-                  25 video interviews / month
+                  25 credits / month
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-400" />
@@ -334,7 +334,7 @@ export function LandingPage() {
               <h3 className="text-lg font-semibold text-white mb-2">Growth</h3>
               <p className="text-sm text-slate-400 mb-4">For teams running continuous hiring cycles.</p>
               <div className="mb-4">
-                <span className="text-3xl font-bold text-white">$79</span>
+                <span className="text-3xl font-bold text-white">₹6,499</span>
                 <span className="text-sm text-slate-400 ml-1">/month</span>
         </div>
               <ul className="space-y-2 text-sm text-slate-300 mb-6">
@@ -344,7 +344,7 @@ export function LandingPage() {
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-400" />
-                  250 video interviews / month
+                  250 credits / month
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-400" />
@@ -392,7 +392,7 @@ export function LandingPage() {
           </div>
 
           <div className="mt-10 text-center text-xs md:text-sm text-slate-400">
-            No credit card required for the free plan. Upgrade only when you&apos;re ready.
+            Monthly credits plus pay-as-you-go top-up packs. Upgrade only when you&apos;re ready.
           </div>
         </div>
       </section>

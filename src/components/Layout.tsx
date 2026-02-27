@@ -6,7 +6,7 @@ import {
   Settings,
   Menu,
   Zap,
-  User,
+  Wallet,
   BookOpen,
 } from "lucide-react";
 import { useState } from "react";
@@ -23,20 +23,28 @@ export function Layout({ children }: LayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { currentView, setCurrentView } = useDashboard();
   const user = useQuery(api.auth.loggedInUser);
+  const billing = useQuery(api.billing.getBillingDashboard);
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "interviews", label: "Interviews", icon: Video },
     { id: "candidates", label: "Candidates", icon: Users },
+    { id: "billing", label: "Billing", icon: Wallet },
     { id: "documentation", label: "Documentation", icon: BookOpen },
     { id: "settings", label: "Settings", icon: Settings },
   ] as const;
 
   const userInitials = user?.email 
     ? user.email.substring(0, 2).toUpperCase() 
-    : "GU";
+    : "US";
     
-  const userName = user?.email ? user.email.split('@')[0] : "Guest User";
+  const userName = user?.email ? user.email.split('@')[0] : "User";
+  const availableCredits = billing?.balances.availableCredits;
+  const creditText = availableCredits === null
+    ? "Unlimited credits"
+    : typeof availableCredits === "number"
+      ? `${availableCredits} credits`
+      : "Credits loading...";
 
   return (
     <div className="min-h-screen bg-slate-50/50 flex font-sans">
@@ -88,7 +96,10 @@ export function Layout({ children }: LayoutProps) {
                         {userName}
                     </p>
                     <p className="text-xs text-slate-500 truncate">
-                        {user?.email || "Anonymous Session"}
+                        {user?.email || "No email on file"}
+                    </p>
+                    <p className="text-xs text-indigo-600 truncate mt-1 font-medium">
+                      {creditText}
                     </p>
                 </div>
             </div>
@@ -105,6 +116,13 @@ export function Layout({ children }: LayoutProps) {
             <span className="text-lg font-bold tracking-tight text-slate-900">
                 Oslin<span className="text-slate-400 font-medium">AI</span>
             </span>
+        </div>
+        <div className="text-xs text-indigo-600 font-semibold">
+          {availableCredits === null
+            ? "Unlimited"
+            : typeof availableCredits === "number"
+              ? `${availableCredits} cr`
+              : "—"}
         </div>
         <Button variant="ghost" size="icon" className="rounded-xl" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
             <Menu className="w-5 h-5 text-slate-600" />
@@ -149,4 +167,3 @@ export function Layout({ children }: LayoutProps) {
     </div>
   );
 }
-

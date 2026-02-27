@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Zap, Mic, CheckCircle, Clock, AlertCircle, SkipForward, Loader2, User, Mail, Briefcase, Shield, ArrowRight, HelpCircle, X, MessageSquare } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { isBillingInsufficientCreditsError } from "../lib/billing";
 
 interface CandidateInterviewProps {
   linkId: string;
@@ -334,7 +335,11 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
       setStep("recording");
     } catch (error) {
       console.error("Error starting interview:", error);
-      if (error instanceof Error) {
+      if (isBillingInsufficientCreditsError(error)) {
+        toast.error(
+          "This interview is temporarily unavailable because the hiring team has run out of credits. Please contact them and try again later.",
+        );
+      } else if (error instanceof Error) {
         if (error.message.includes("Interview already started") || 
             error.message.includes("already been used") ||
             error.message.includes("already been completed")) {
@@ -440,6 +445,13 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
         setStep("complete");
       } catch (error) {
         console.error("Failed to finalize interview", error);
+        if (isBillingInsufficientCreditsError(error)) {
+          toast.error(
+            "Interview completion is blocked due to billing limits on the hiring team account. Please contact support.",
+          );
+          isCompletingRef.current = false; // Allow retry
+          return;
+        }
         toast.error("Failed to complete interview. Please try again or contact support.");
         // Don't set step to "complete" if finalization failed
         // Keep user on current step so they can retry
@@ -1069,4 +1081,3 @@ export function CandidateInterview({ linkId }: CandidateInterviewProps) {
     </div>
   );
 }
-

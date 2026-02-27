@@ -99,6 +99,113 @@ const applicationTables = {
       feedback: v.string(),
     })),
   }).index("by_interview", ["interviewId"]),
+
+  billingAccounts: defineTable({
+    userId: v.id("users"),
+    planTier: v.union(
+      v.literal("starter"),
+      v.literal("growth"),
+      v.literal("enterprise")
+    ),
+    planStatus: v.union(
+      v.literal("active"),
+      v.literal("grace"),
+      v.literal("past_due"),
+      v.literal("canceled")
+    ),
+    monthlyCreditsPerCycle: v.number(),
+    monthlyCreditsRemaining: v.number(),
+    currentCycleStartAt: v.number(),
+    currentCycleEndAt: v.number(),
+    graceEndsAt: v.optional(v.number()),
+    enterpriseUnlimited: v.boolean(),
+    razorpayCustomerId: v.optional(v.string()),
+    razorpaySubscriptionId: v.optional(v.string()),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_plan_status", ["planStatus"])
+    .index("by_cycle_end", ["currentCycleEndAt"])
+    .index("by_razorpay_subscription", ["razorpaySubscriptionId"]),
+
+  creditBuckets: defineTable({
+    userId: v.id("users"),
+    sourceType: v.union(
+      v.literal("monthly"),
+      v.literal("topup"),
+      v.literal("adjustment"),
+      v.literal("reservation")
+    ),
+    totalCredits: v.number(),
+    remainingCredits: v.number(),
+    expiresAt: v.optional(v.number()),
+    metadata: v.optional(v.object({
+      note: v.optional(v.string()),
+      planTier: v.optional(v.string()),
+      packId: v.optional(v.string()),
+      interviewId: v.optional(v.id("interviews")),
+      reservationType: v.optional(v.union(v.literal("pipeline"), v.literal("analysis_retry"))),
+      reservationId: v.optional(v.id("creditReservations")),
+    })),
+  })
+    .index("by_user", ["userId"])
+    .index("by_expires_at", ["expiresAt"]),
+
+  creditReservations: defineTable({
+    userId: v.id("users"),
+    interviewId: v.id("interviews"),
+    reservationType: v.union(v.literal("pipeline"), v.literal("analysis_retry")),
+    reservedTotal: v.number(),
+    remainingReserved: v.number(),
+    status: v.union(v.literal("active"), v.literal("released"), v.literal("completed")),
+    expiresAt: v.number(),
+    metadata: v.optional(v.object({
+      reason: v.optional(v.string()),
+      attemptId: v.optional(v.string()),
+    })),
+  })
+    .index("by_user", ["userId"])
+    .index("by_interview", ["interviewId"])
+    .index("by_expires_at", ["expiresAt"]),
+
+  billingTransactions: defineTable({
+    userId: v.id("users"),
+    kind: v.union(
+      v.literal("charge"),
+      v.literal("reserve"),
+      v.literal("release"),
+      v.literal("topup"),
+      v.literal("reset"),
+      v.literal("subscription_renewal"),
+      v.literal("manual_adjustment")
+    ),
+    creditsDelta: v.number(),
+    rupeeAmount: v.optional(v.number()),
+    currency: v.string(),
+    referenceType: v.string(),
+    referenceId: v.string(),
+    createdAt: v.number(),
+    metadata: v.optional(v.object({
+      note: v.optional(v.string()),
+      eventId: v.optional(v.string()),
+      planTier: v.optional(v.string()),
+      packId: v.optional(v.string()),
+      interviewId: v.optional(v.id("interviews")),
+      reservationId: v.optional(v.id("creditReservations")),
+      attemptId: v.optional(v.string()),
+    })),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_created", ["userId", "createdAt"]),
+
+  billingWebhookEvents: defineTable({
+    provider: v.string(),
+    eventId: v.string(),
+    eventType: v.string(),
+    processedAt: v.number(),
+    status: v.union(v.literal("processed"), v.literal("ignored"), v.literal("failed")),
+    payloadHash: v.string(),
+  }).index("by_provider_event", ["provider", "eventId"]),
 };
 
 export default defineSchema({

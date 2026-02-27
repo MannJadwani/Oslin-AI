@@ -92,27 +92,6 @@ export function SignInForm() {
             </Button>
         </form>
 
-        <div className="relative my-8">
-            <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-slate-100" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase tracking-wider font-medium">
-                <span className="bg-white px-3 text-slate-400">
-                Or continue with
-                </span>
-            </div>
-        </div>
-
-        <Button 
-            variant="outline" 
-            className="w-full h-11 rounded-full border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium" 
-            onClick={() => void signIn("anonymous")}
-        >
-             <div className="w-5 h-5 mr-2 rounded-full bg-slate-100 flex items-center justify-center">
-                <User className="w-3 h-3 text-slate-500" />
-             </div>
-            Sign in as Guest
-        </Button>
       </div>
 
       <div className="flex justify-center mt-8 pt-6 border-t border-slate-50">

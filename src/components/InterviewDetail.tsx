@@ -9,6 +9,8 @@ import { CheckCircle2, AlertTriangle, AlertCircle, XCircle, User, Mail, Calendar
 import { toast } from "sonner";
 import { ChunkedVideoPlayer } from "./ChunkedVideoPlayer";
 import { useState } from "react";
+import { useDashboard } from "../lib/DashboardContext";
+import { extractBillingErrorMessage, isBillingInsufficientCreditsError } from "../lib/billing";
 
 interface InterviewDetailProps {
   interviewId: Id<"interviews">;
@@ -21,6 +23,7 @@ export function InterviewDetail({ interviewId, onDelete }: InterviewDetailProps)
   const retryAnalysis = useMutation(api.ai.requestAnalysis);
   const deleteInterview = useMutation(api.interviews.deleteInterview);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const { setCurrentView } = useDashboard();
 
   const handleEndInterview = async () => {
     try {
@@ -37,6 +40,15 @@ export function InterviewDetail({ interviewId, onDelete }: InterviewDetailProps)
       await retryAnalysis({ interviewId });
       toast.success("Analysis requested. Check back in a moment.");
     } catch (error) {
+      if (isBillingInsufficientCreditsError(error)) {
+        toast.error(extractBillingErrorMessage(error), {
+          action: {
+            label: "Open Billing",
+            onClick: () => setCurrentView("billing"),
+          },
+        });
+        return;
+      }
       toast.error("Failed to request analysis retry.");
     }
   };
