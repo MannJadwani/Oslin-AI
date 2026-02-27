@@ -36,9 +36,10 @@ export function Layout({ children }: LayoutProps) {
     { id: "settings", label: "Settings", icon: Settings },
   ] as const;
 
-  const navItems = adminContext?.isAdmin
-    ? [...baseNavItems, { id: "admin", label: "Admin", icon: Shield }]
-    : baseNavItems;
+  const navItems =
+    adminContext && adminContext.isAuthenticated
+      ? [...baseNavItems, { id: "admin", label: "Admin", icon: Shield }]
+      : baseNavItems;
 
   const userInitials = user?.email 
     ? user.email.substring(0, 2).toUpperCase() 
