@@ -246,6 +246,18 @@ const applicationTables = {
     .index("by_actor", ["actorUserId"])
     .index("by_created_at", ["createdAt"])
     .index("by_target", ["targetType", "targetId"]),
+
+  hrmsApiKeys: defineTable({
+    userId: v.id("users"),
+    label: v.string(),
+    keyHash: v.string(),
+    keyPrefix: v.string(),
+    createdAt: v.number(),
+    lastUsedAt: v.optional(v.number()),
+    revokedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_key_hash", ["keyHash"]),
 };
 
 export default defineSchema({
