@@ -19,6 +19,8 @@ import type * as auth from "../auth.js";
 import type * as billing from "../billing.js";
 import type * as billingWebhook from "../billingWebhook.js";
 import type * as crons from "../crons.js";
+import type * as hrms from "../hrms.js";
+import type * as hrmsHttp from "../hrmsHttp.js";
 import type * as http from "../http.js";
 import type * as interviews from "../interviews.js";
 import type * as introQuestions from "../introQuestions.js";
@@ -42,6 +44,8 @@ declare const fullApi: ApiFromModules<{
   billing: typeof billing;
   billingWebhook: typeof billingWebhook;
   crons: typeof crons;
+  hrms: typeof hrms;
+  hrmsHttp: typeof hrmsHttp;
   http: typeof http;
   interviews: typeof interviews;
   introQuestions: typeof introQuestions;

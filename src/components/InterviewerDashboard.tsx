@@ -7,6 +7,7 @@ import { Documentation } from "./documentation/Documentation";
 import { ChangePasswordForm } from "./ChangePasswordForm";
 import { BillingDashboard } from "./BillingDashboard";
 import { AdminDashboard } from "./AdminDashboard";
+import { HrmsApiManager } from "./HrmsApiManager";
 import { Id } from "../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,13 +45,14 @@ export function InterviewerDashboard() {
             Settings
           </h1>
           <p className="text-slate-500">
-            Configure your interview settings and global questions.
+            Configure interview defaults, account security, and external HRMS access.
           </p>
         </div>
         <Separator className="bg-slate-200" />
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 xl:grid-cols-3">
           <IntroQuestionsManager />
           <ChangePasswordForm />
+          <HrmsApiManager />
         </div>
       </div>
     );
